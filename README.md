@@ -23,7 +23,7 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Open [http://localhost:8080](http://localhost:8080) and sign in with the development account configured by `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` in `.env`. The defaults in `.env.example` are for local development only. The site binds to localhost; do not use these defaults for a deployed environment.
+Open [http://localhost:8081](http://localhost:8081) and sign in with the development account configured by `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` in `.env`. The defaults in `.env.example` are for local development only. The site binds to localhost; do not use these defaults for a deployed environment.
 
 Stop the services with `docker compose down`. MySQL data persists in a named volume. To reset the local database and delete its data, use `docker compose down --volumes`.
 
