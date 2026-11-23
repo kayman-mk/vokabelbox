@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../app_theme.dart';
+import 'import_screen.dart';
 import '../widgets/common_widgets.dart';
 
 class SetScreen extends StatefulWidget {
@@ -45,10 +46,20 @@ class _SetScreenState extends State<SetScreen> {
     }
   }
 
+  Future<void> _importCsv() async {
+    final imported = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => ImportScreen(api: widget.api, vocabularySet: widget.vocabularySet)),
+    );
+    if (imported == true && mounted) {
+      setState(() => _words = widget.api.getWords(widget.vocabularySet.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: vokabelPaper, title: Text(widget.vocabularySet.name, style: const TextStyle(color: vokabelInk, fontWeight: FontWeight.w600)), actions: [IconButton(tooltip: 'Vokabel hinzufügen', onPressed: _addWord, icon: const Icon(Icons.add_rounded)), const SizedBox(width: 8)]),
+      appBar: AppBar(backgroundColor: vokabelPaper, title: Text(widget.vocabularySet.name, style: const TextStyle(color: vokabelInk, fontWeight: FontWeight.w600)), actions: [IconButton(tooltip: 'CSV importieren', onPressed: _importCsv, icon: const Icon(Icons.upload_file_rounded)), IconButton(tooltip: 'Vokabel hinzufügen', onPressed: _addWord, icon: const Icon(Icons.add_rounded)), const SizedBox(width: 8)]),
       body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: FutureBuilder<List<Vocabulary>>(
         future: _words,
         builder: (context, snapshot) {

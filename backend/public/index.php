@@ -142,6 +142,80 @@ if ($method === 'POST' && $path === '/api/v1/sets') {
     respond(201, ['id' => $id, 'name' => $name, 'wordCount' => 0]);
 }
 
+if ($method === 'POST' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/imports$#', $path, $matches) === 1) {
+    $setId = strtolower($matches[1]);
+    $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
+    $setQuery->execute(['id' => $setId, 'owner' => $userId]);
+    if ($setQuery->fetchColumn() === false) {
+        respond(404, ['error' => 'List not found.']);
+    }
+
+    $rows = request_body()['rows'] ?? null;
+    if (!is_array($rows) || !array_is_list($rows) || count($rows) < 1 || count($rows) > 500) {
+        respond(422, ['error' => 'Import must contain between 1 and 500 rows.']);
+    }
+
+    $validRows = [];
+    $invalidRows = [];
+    foreach ($rows as $index => $row) {
+        if (!is_array($row) || !is_string($row['prompt'] ?? null) || !is_string($row['answer'] ?? null)) {
+            $invalidRows[] = $index + 1;
+            continue;
+        }
+        $prompt = trim($row['prompt']);
+        $answer = trim($row['answer']);
+        if ($prompt === '' || $answer === '' || mb_strlen($prompt) > 255 || mb_strlen($answer) > 500) {
+            $invalidRows[] = $index + 1;
+            continue;
+        }
+        $validRows[] = ['prompt' => $prompt, 'answer' => $answer];
+    }
+    if ($invalidRows !== []) {
+        respond(422, ['error' => 'Some import rows are invalid; no rows were imported.', 'invalidRows' => $invalidRows]);
+    }
+
+    $pdo = database();
+    try {
+        $pdo->beginTransaction();
+        $existingQuery = $pdo->prepare('SELECT prompt, answer FROM vocabularies WHERE vocabulary_set_id = :set_id');
+        $existingQuery->execute(['set_id' => $setId]);
+        $seen = [];
+        foreach ($existingQuery->fetchAll() as $existing) {
+            $key = mb_strtolower($existing['prompt'], 'UTF-8') . "\0" . mb_strtolower($existing['answer'], 'UTF-8');
+            $seen[$key] = true;
+        }
+
+        $insert = $pdo->prepare(
+            'INSERT INTO vocabularies (id, vocabulary_set_id, prompt, answer) VALUES (:id, :set_id, :prompt, :answer)'
+        );
+        $created = 0;
+        $skippedDuplicates = 0;
+        foreach ($validRows as $row) {
+            $key = mb_strtolower($row['prompt'], 'UTF-8') . "\0" . mb_strtolower($row['answer'], 'UTF-8');
+            if (isset($seen[$key])) {
+                $skippedDuplicates++;
+                continue;
+            }
+            $insert->execute([
+                'id' => uuid_v4(),
+                'set_id' => $setId,
+                'prompt' => $row['prompt'],
+                'answer' => $row['answer'],
+            ]);
+            $seen[$key] = true;
+            $created++;
+        }
+        $pdo->commit();
+        respond(201, ['created' => $created, 'skippedDuplicates' => $skippedDuplicates]);
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('Vocabulary import failed; the transaction was rolled back.');
+        respond(500, ['error' => 'Import failed. No rows were imported.']);
+    }
+}
+
 if (preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/words$#', $path, $matches) === 1) {
     $setId = strtolower($matches[1]);
     $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
