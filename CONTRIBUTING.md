@@ -25,7 +25,7 @@ Keep changes consistent with the selected Flutter/Dart client, PHP REST API, and
 
 ## Licensing contributions
 
-By submitting a contribution for inclusion in VokabelBox, you agree to license your contribution under the same terms as the project: Apache License 2.0 subject to the Commons Clause License Condition v1.0 in [LICENSE](LICENSE). Submit only work that you have the right to contribute under these terms.
+By submitting a contribution for inclusion in VokabelBox, you agree that your contribution is offered under the project's [PolyForm Noncommercial License 1.0.0](LICENSE). Submit only work that you have the right to contribute under these terms.
 
 ## Community standards
 

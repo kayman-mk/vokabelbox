@@ -27,4 +27,4 @@ Please report security vulnerabilities privately. See [SECURITY.md](SECURITY.md)
 
 ## License
 
-VokabelBox is licensed under the Apache License 2.0 with the Commons Clause License Condition v1.0. You may use, modify, and redistribute it under the Apache terms, subject to the Commons Clause restriction on selling the software or providing a fee-based hosted product or service whose value derives entirely or substantially from VokabelBox. The Commons Clause makes this source-available software, not OSI-defined open-source software. See [LICENSE](LICENSE) for the full terms.
+VokabelBox is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). It permits use only for purposes allowed by that license; commercial purposes are not granted. Read [LICENSE](LICENSE) for the complete terms. This is a source-available license, not an OSI-approved open-source license.
