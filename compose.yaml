@@ -1,0 +1,52 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${APP_PORT:-8081}:80"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: db
+      DB_NAME: ${MYSQL_DATABASE:-vokabelbox}
+      DB_USER: ${MYSQL_USER:-vokabelbox}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-local-db-password}
+      DEV_ADMIN_USERNAME: ${DEV_ADMIN_USERNAME:-admin}
+      DEV_ADMIN_PASSWORD: ${DEV_ADMIN_PASSWORD:-local-admin-password}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vokabelbox}
+      MYSQL_USER: ${MYSQL_USER:-vokabelbox}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-local-db-password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

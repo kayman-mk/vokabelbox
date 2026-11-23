@@ -1,0 +1,14 @@
+{
+  "name": "kayman-mk/vokabelbox-backend",
+  "description": "VokabelBox PHP API and schema migrations",
+  "type": "project",
+  "require": {
+    "php": ">=8.3",
+    "ext-pdo": "*",
+    "robmorgan/phinx": "0.16.12"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {}
+  }
+}
