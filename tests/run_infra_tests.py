@@ -49,7 +49,6 @@ def main():
         else:
             raise RuntimeError("Isolated test stack did not become healthy within three minutes.")
 
-        run_compose("exec", "-T", "api", "php", "tests/uuid_test.php")
         subprocess.run([sys.executable, str(ROOT / "tests" / "infra_test.py")], cwd=ROOT, env=environment, check=True)
     finally:
         run_compose("down", "--rmi", "local", "--volumes", "--remove-orphans")

@@ -35,7 +35,7 @@ The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection 
 
 ## Tests
 
-Run the unit and infrastructure tests with `python tests/run_infra_tests.py`. The runner creates a uniquely named Compose project on port `18081`, with its own MySQL volume and `test` / `test` development account, then removes that test project's containers and volume when finished. It does not connect to or change the normal local stack on port `8081`.
+Run the UUID unit test with PHP 8.4 using `php backend/tests/uuid_test.php`. Run the infrastructure tests with `python tests/run_infra_tests.py`. The infrastructure runner creates a uniquely named Compose project on port `18081`, with its own MySQL volume and `test` / `test` development account, then removes that test project's containers and volume when finished. It does not connect to or change the normal local stack on port `8081`.
 
 ## Contributing
 
