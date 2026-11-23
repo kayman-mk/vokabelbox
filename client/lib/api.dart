@@ -57,6 +57,16 @@ class ApiClient {
     await _post('/sets/$setId/words', {'prompt': prompt, 'answer': answer});
   }
 
+  Future<ImportResult> importWords(String setId, List<ImportRow> rows) async {
+    final data = await _post('/sets/$setId/imports', {
+      'rows': rows.map((row) => {'prompt': row.prompt, 'answer': row.answer}).toList(),
+    });
+    return ImportResult(
+      created: data['created'] as int,
+      skippedDuplicates: data['skippedDuplicates'] as int,
+    );
+  }
+
   Uri _uri(String path) => Uri.parse('$_baseUrl$path');
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) async {
@@ -103,4 +113,18 @@ class Vocabulary {
         prompt: json['prompt'] as String,
         answer: json['answer'] as String,
       );
+}
+
+class ImportRow {
+  const ImportRow({required this.prompt, required this.answer});
+
+  final String prompt;
+  final String answer;
+}
+
+class ImportResult {
+  const ImportResult({required this.created, required this.skippedDuplicates});
+
+  final int created;
+  final int skippedDuplicates;
 }

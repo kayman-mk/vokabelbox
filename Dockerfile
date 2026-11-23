@@ -17,7 +17,7 @@ ENV PATH="/opt/flutter/bin:${PATH}"
 RUN git config --global --add safe.directory /opt/flutter
 
 WORKDIR /src/client
-COPY client/pubspec.yaml ./pubspec.yaml
+COPY client/pubspec.yaml client/pubspec.lock ./
 RUN flutter config --no-analytics --enable-web \
     && flutter pub get
 COPY client/ ./

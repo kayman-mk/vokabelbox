@@ -82,10 +82,40 @@ class RunningInfrastructureTests(unittest.TestCase):
         self.assertEqual(stored_words["words"][0]["prompt"], word["prompt"])
         self.assertEqual(stored_words["words"][0]["answer"], word["answer"])
 
+        import_path = f"/api/v1/sets/{vocabulary_set['id']}/imports"
+        status, _, payload = request(
+            import_path,
+            "POST",
+            {"rows": [{"prompt": "tree", "answer": "Baum"}, {"prompt": "", "answer": "invalid"}]},
+            client,
+        )
+        self.assertEqual(status, 422)
+        self.assertIn("invalidRows", payload)
+        status, _, unchanged_words = request(f"/api/v1/sets/{vocabulary_set['id']}/words", opener=client)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(unchanged_words["words"]), 1)
+
+        status, _, result = request(
+            import_path,
+            "POST",
+            {"rows": [
+                {"prompt": "house", "answer": "HAUS"},
+                {"prompt": "Tree", "answer": "Baum"},
+                {"prompt": "tree", "answer": "baum"},
+            ]},
+            client,
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(result, {"created": 1, "skippedDuplicates": 2})
+        status, _, imported_words = request(f"/api/v1/sets/{vocabulary_set['id']}/words", opener=client)
+        self.assertEqual(status, 200)
+        original_word = next(item for item in imported_words["words"] if item["id"] == created_word["id"])
+        self.assertEqual(original_word["answer"], "Haus")
+
         status, _, sets = request("/api/v1/sets", opener=client)
         self.assertEqual(status, 200)
         saved_set = next(item for item in sets["sets"] if item["id"] == vocabulary_set["id"])
-        self.assertEqual(saved_set["wordCount"], 1)
+        self.assertEqual(saved_set["wordCount"], 2)
 
 
 if __name__ == "__main__":
