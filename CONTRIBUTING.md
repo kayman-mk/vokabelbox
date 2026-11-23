@@ -23,6 +23,10 @@ Pull requests are squash-merged. The PR title and description are used as the sq
 
 Keep changes consistent with the selected Flutter/Dart client, PHP REST API, and MySQL architecture unless an approved decision changes it. Avoid adding dependencies or generated files without explaining why. Maintainers may request revisions or split changes that combine unrelated work.
 
+## Licensing contributions
+
+By submitting a contribution for inclusion in VokabelBox, you agree to license your contribution under the same terms as the project: Apache License 2.0 subject to the Commons Clause License Condition v1.0 in [LICENSE](LICENSE). Submit only work that you have the right to contribute under these terms.
+
 ## Community standards
 
 By participating, you agree to follow the expectations in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
