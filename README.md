@@ -13,9 +13,25 @@ The product specification is in [docs/SPECIFICATION.md](docs/SPECIFICATION.md). 
 - Responsive use on desktop, tablet, Android, and iOS.
 - Online-first operation, with offline study planned for a later phase.
 
-## Project status
+## Run locally
 
-Planning/specification. See [the specification](docs/SPECIFICATION.md) for requirements, proposed architecture, acceptance criteria, and open decisions.
+Requirements: Docker Desktop with Docker Compose.
+
+```powershell
+Copy-Item .env.example .env
+# Edit .env and replace the local passwords before the first start.
+docker compose up --build
+```
+
+Open [http://localhost:8080](http://localhost:8080) and sign in with the development account configured by `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` in `.env`. The defaults in `.env.example` are for local development only. The site binds to localhost; do not use these defaults for a deployed environment.
+
+Stop the services with `docker compose down`. MySQL data persists in a named volume. To reset the local database and delete its data, use `docker compose down --volumes`.
+
+## Current implementation
+
+The starter site supports login, creating private vocabulary lists, and adding/listing word pairs. It does not yet implement shared lists, CSV import, learning schedules/progress, statistics, mobile builds, or offline operation. The initial local account is created from `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` only when that username is absent; changing `.env` will not reset an existing account. See [the specification](docs/SPECIFICATION.md) for the full product plan and open decisions.
+
+The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
 
 ## Contributing
 
