@@ -13,6 +13,9 @@ RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/st
 
 ENV PATH="/opt/flutter/bin:${PATH}"
 
+# The SDK archive is owned by root and Flutter invokes Git during startup.
+RUN git config --global --add safe.directory /opt/flutter
+
 WORKDIR /src/client
 COPY client/pubspec.yaml ./pubspec.yaml
 RUN flutter config --no-analytics --enable-web \

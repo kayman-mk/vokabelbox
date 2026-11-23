@@ -46,14 +46,14 @@ class ApiClient {
         await _post('/sets', {'name': name}),
       );
 
-  Future<List<Vocabulary>> getWords(int setId) async {
+  Future<List<Vocabulary>> getWords(String setId) async {
     final data = _decode(await _client.get(_uri('/sets/$setId/words')));
     return (data['words'] as List<dynamic>)
         .map((item) => Vocabulary.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
-  Future<void> addWord(int setId, String prompt, String answer) async {
+  Future<void> addWord(String setId, String prompt, String answer) async {
     await _post('/sets/$setId/words', {'prompt': prompt, 'answer': answer});
   }
 
@@ -80,12 +80,12 @@ class ApiClient {
 class VocabularySet {
   const VocabularySet({required this.id, required this.name, required this.wordCount});
 
-  final int id;
+  final String id;
   final String name;
   final int wordCount;
 
   factory VocabularySet.fromJson(Map<String, dynamic> json) => VocabularySet(
-        id: json['id'] as int,
+        id: json['id'] as String,
         name: json['name'] as String,
         wordCount: json['wordCount'] as int,
       );
@@ -94,12 +94,12 @@ class VocabularySet {
 class Vocabulary {
   const Vocabulary({required this.id, required this.prompt, required this.answer});
 
-  final int id;
+  final String id;
   final String prompt;
   final String answer;
 
   factory Vocabulary.fromJson(Map<String, dynamic> json) => Vocabulary(
-        id: json['id'] as int,
+        id: json['id'] as String,
         prompt: json['prompt'] as String,
         answer: json['answer'] as String,
       );

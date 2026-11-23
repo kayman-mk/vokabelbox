@@ -6,6 +6,9 @@ RUN apk add --no-cache oniguruma \
     && apk del .build-deps
 
 WORKDIR /var/www/html
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --classmap-authoritative
 COPY . /var/www/html
 RUN chmod +x /var/www/html/entrypoint.sh
 

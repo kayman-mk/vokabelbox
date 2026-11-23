@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+$config = require __DIR__ . '/../config.php';
+require __DIR__ . '/../src/uuid.php';
 
 session_name('vokabelbox_session');
 session_set_cookie_params([
@@ -25,18 +27,16 @@ function respond(int $status, array $payload): never
 function database(): PDO
 {
     static $pdo = null;
+    global $config;
     if ($pdo instanceof PDO) {
         return $pdo;
     }
 
-    $host = getenv('DB_HOST') ?: 'db';
-    $name = getenv('DB_NAME') ?: 'vokabelbox';
-    $user = getenv('DB_USER') ?: 'vokabelbox';
-    $password = getenv('DB_PASSWORD') ?: '';
+    $database = $config['database'];
     $pdo = new PDO(
-        "mysql:host={$host};dbname={$name};charset=utf8mb4",
-        $user,
-        $password,
+        sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $database['host'], $database['port'], $database['name']),
+        $database['user'],
+        $database['password'],
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
     );
     return $pdo;
@@ -86,13 +86,13 @@ if ($method === 'POST' && $path === '/api/v1/auth/login') {
     }
 
     session_regenerate_id(true);
-    $_SESSION['user_id'] = (int)$user['id'];
-    respond(200, ['id' => (int)$user['id'], 'username' => $user['username']]);
+    $_SESSION['user_id'] = $user['id'];
+    respond(200, ['id' => $user['id'], 'username' => $user['username']]);
 }
 
 if ($method === 'GET' && $path === '/api/v1/auth/me') {
     $user = authenticated_user();
-    respond(200, ['id' => (int)$user['id'], 'username' => $user['username']]);
+    respond(200, ['id' => $user['id'], 'username' => $user['username']]);
 }
 
 if ($method === 'POST' && $path === '/api/v1/auth/logout') {
@@ -112,7 +112,7 @@ if ($method === 'POST' && $path === '/api/v1/auth/logout') {
 }
 
 $user = authenticated_user();
-$userId = (int)$user['id'];
+$userId = $user['id'];
 
 if ($method === 'GET' && $path === '/api/v1/sets') {
     $query = database()->prepare(
@@ -125,7 +125,7 @@ if ($method === 'GET' && $path === '/api/v1/sets') {
     );
     $query->execute(['owner_user_id' => $userId]);
     respond(200, ['sets' => array_map(static fn(array $row): array => [
-        'id' => (int)$row['id'],
+        'id' => $row['id'],
         'name' => $row['name'],
         'wordCount' => (int)$row['word_count'],
     ], $query->fetchAll())]);
@@ -136,13 +136,14 @@ if ($method === 'POST' && $path === '/api/v1/sets') {
     if ($name === '' || mb_strlen($name) > 120) {
         respond(422, ['error' => 'List name must contain between 1 and 120 characters.']);
     }
-    $insert = database()->prepare('INSERT INTO vocabulary_sets (owner_user_id, name) VALUES (:owner, :name)');
-    $insert->execute(['owner' => $userId, 'name' => $name]);
-    respond(201, ['id' => (int)database()->lastInsertId(), 'name' => $name, 'wordCount' => 0]);
+    $id = uuid_v4();
+    $insert = database()->prepare('INSERT INTO vocabulary_sets (id, owner_user_id, name) VALUES (:id, :owner, :name)');
+    $insert->execute(['id' => $id, 'owner' => $userId, 'name' => $name]);
+    respond(201, ['id' => $id, 'name' => $name, 'wordCount' => 0]);
 }
 
-if (preg_match('#^/api/v1/sets/(\d+)/words$#', $path, $matches) === 1) {
-    $setId = (int)$matches[1];
+if (preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/words$#', $path, $matches) === 1) {
+    $setId = strtolower($matches[1]);
     $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
     $setQuery->execute(['id' => $setId, 'owner' => $userId]);
     if ($setQuery->fetchColumn() === false) {
@@ -155,7 +156,7 @@ if (preg_match('#^/api/v1/sets/(\d+)/words$#', $path, $matches) === 1) {
         );
         $query->execute(['set_id' => $setId]);
         respond(200, ['words' => array_map(static fn(array $row): array => [
-            'id' => (int)$row['id'],
+            'id' => $row['id'],
             'prompt' => $row['prompt'],
             'answer' => $row['answer'],
         ], $query->fetchAll())]);
@@ -168,11 +169,12 @@ if (preg_match('#^/api/v1/sets/(\d+)/words$#', $path, $matches) === 1) {
         if ($prompt === '' || $answer === '' || mb_strlen($prompt) > 255 || mb_strlen($answer) > 500) {
             respond(422, ['error' => 'Prompt and answer are required and must fit the allowed length.']);
         }
+        $id = uuid_v4();
         $insert = database()->prepare(
-            'INSERT INTO vocabularies (vocabulary_set_id, prompt, answer) VALUES (:set_id, :prompt, :answer)'
+            'INSERT INTO vocabularies (id, vocabulary_set_id, prompt, answer) VALUES (:id, :set_id, :prompt, :answer)'
         );
-        $insert->execute(['set_id' => $setId, 'prompt' => $prompt, 'answer' => $answer]);
-        respond(201, ['id' => (int)database()->lastInsertId(), 'prompt' => $prompt, 'answer' => $answer]);
+        $insert->execute(['id' => $id, 'set_id' => $setId, 'prompt' => $prompt, 'answer' => $answer]);
+        respond(201, ['id' => $id, 'prompt' => $prompt, 'answer' => $answer]);
     }
 }
 

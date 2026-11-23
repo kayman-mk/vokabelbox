@@ -2,7 +2,7 @@
 
 VokabelBox is a multi-user vocabulary learning application planned for desktop browsers, tablets, and phones. The planned client uses Flutter and Dart for web, Android, and iOS, backed by a PHP REST API and MySQL.
 
-The product specification is in [docs/SPECIFICATION.md](docs/SPECIFICATION.md). This repository currently contains planning and repository guidance; application code and build instructions will be added as implementation begins.
+The product specification is in [docs/SPECIFICATION.md](docs/SPECIFICATION.md). The repository includes a runnable starter site and local development stack.
 
 ## Planned capabilities
 
@@ -29,9 +29,9 @@ Stop the services with `docker compose down`. MySQL data persists in a named vol
 
 ## Current implementation
 
-The starter site supports login, creating private vocabulary lists, and adding/listing word pairs. It does not yet implement shared lists, CSV import, learning schedules/progress, statistics, mobile builds, or offline operation. The initial local account is created from `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` only when that username is absent; changing `.env` will not reset an existing account. See [the specification](docs/SPECIFICATION.md) for the full product plan and open decisions.
+The starter site supports login, creating private vocabulary lists, and adding/listing word pairs. Screen widgets live in separate files under `client/lib/screens/`; shared presentation widgets and theme constants are in `client/lib/widgets/` and `client/lib/app_theme.dart`. It does not yet implement shared lists, CSV import, learning schedules/progress, statistics, mobile builds, or offline operation. Database schema is managed with Phinx migrations in `backend/db/migrations/`. The initial migration creates UUIDv4-compatible `CHAR(36)` primary keys and upgrades the earlier integer schema while preserving rows and relationships. The API generates UUIDv4 identifiers. To inspect or run migrations, use `docker compose exec api php vendor/bin/phinx status -c /var/www/html/phinx.php -e development` or `docker compose exec api php vendor/bin/phinx migrate -c /var/www/html/phinx.php -e development`. The initial local account is created from `DEV_ADMIN_USERNAME` and `DEV_ADMIN_PASSWORD` only when that username is absent; changing `.env` will not reset an existing account. See [the specification](docs/SPECIFICATION.md) for the full product plan and open decisions.
 
-The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
+The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in `backend/config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
 
 ## Contributing
 
