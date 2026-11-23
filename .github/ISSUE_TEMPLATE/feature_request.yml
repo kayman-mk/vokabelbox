@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an improvement to VokabelBox.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User need
+      description: What problem or need would this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you would like.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: specification
+    attributes:
+      label: Specification impact
+      options:
+        - label: This may change a product or architecture decision in docs/SPECIFICATION.md.
