@@ -33,6 +33,10 @@ The starter site supports login, creating private vocabulary lists, and adding/l
 
 The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in `backend/config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
 
+## Tests
+
+Run the unit and infrastructure tests with `python tests/run_infra_tests.py`. The runner creates a uniquely named Compose project on port `18081`, with its own MySQL volume and `test` / `test` development account, then removes that test project's containers and volume when finished. It does not connect to or change the normal local stack on port `8081`.
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Pull requests are merged using squash commits; the pull request title and description become the resulting commit message on `main`.
