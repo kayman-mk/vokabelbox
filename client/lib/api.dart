@@ -57,6 +57,33 @@ class ApiClient {
     await _post('/sets/$setId/words', {'prompt': prompt, 'answer': answer});
   }
 
+  Future<StudySession> getStudySession(String setId, String direction) async {
+    final uri = _uri('/sets/$setId/study').replace(queryParameters: {
+      'method': 'fsrs',
+      'direction': direction,
+    });
+    final data = _decode(await _client.get(uri));
+    return StudySession.fromJson(data);
+  }
+
+  Future<int> reviewStudyCard(String setId, String vocabularyId, String direction, int rating) async {
+    final data = await _post('/sets/$setId/study/reviews', {
+      'method': 'fsrs',
+      'direction': direction,
+      'vocabularyId': vocabularyId,
+      'rating': rating,
+    });
+    return data['intervalDays'] as int;
+  }
+
+  Future<LearningStatistics> getLearningStatistics(String setId, String direction) async {
+    final uri = _uri('/sets/$setId/statistics').replace(queryParameters: {
+      'method': 'fsrs',
+      'direction': direction,
+    });
+    return LearningStatistics.fromJson(_decode(await _client.get(uri)));
+  }
+
   Future<ImportResult> importWords(String setId, List<ImportRow> rows) async {
     final data = await _post('/sets/$setId/imports', {
       'rows': rows.map((row) => {'prompt': row.prompt, 'answer': row.answer}).toList(),
@@ -112,6 +139,126 @@ class Vocabulary {
         id: json['id'] as String,
         prompt: json['prompt'] as String,
         answer: json['answer'] as String,
+      );
+}
+
+class StudySession {
+  const StudySession({required this.cards, required this.stats});
+
+  final List<StudyCard> cards;
+  final StudyStats stats;
+
+  factory StudySession.fromJson(Map<String, dynamic> json) => StudySession(
+        cards: (json['cards'] as List<dynamic>)
+            .map((item) => StudyCard.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        stats: StudyStats.fromJson(json['stats'] as Map<String, dynamic>),
+      );
+}
+
+class StudyCard {
+  const StudyCard({required this.id, required this.front, required this.back});
+
+  final String id;
+  final String front;
+  final String back;
+
+  factory StudyCard.fromJson(Map<String, dynamic> json) => StudyCard(
+        id: json['id'] as String,
+        front: json['front'] as String,
+        back: json['back'] as String,
+      );
+}
+
+class StudyStats {
+  const StudyStats({required this.total, required this.newCount, required this.dueCount, required this.reviewedCount, required this.repetitions, required this.lapses});
+
+  final int total;
+  final int newCount;
+  final int dueCount;
+  final int reviewedCount;
+  final int repetitions;
+  final int lapses;
+
+  factory StudyStats.fromJson(Map<String, dynamic> json) => StudyStats(
+        total: json['total'] as int,
+        newCount: json['new_count'] as int,
+        dueCount: json['due_count'] as int,
+        reviewedCount: json['reviewed_count'] as int,
+        repetitions: json['repetitions'] as int,
+        lapses: json['lapses'] as int,
+      );
+}
+
+class LearningStatistics {
+  const LearningStatistics({required this.progress, required this.reviews, required this.dailyActivity});
+
+  final LearningProgressStats progress;
+  final ReviewStatistics reviews;
+  final List<DailyReviewActivity> dailyActivity;
+
+  factory LearningStatistics.fromJson(Map<String, dynamic> json) => LearningStatistics(
+        progress: LearningProgressStats.fromJson(json['progress'] as Map<String, dynamic>),
+        reviews: ReviewStatistics.fromJson(json['reviews'] as Map<String, dynamic>),
+        dailyActivity: (json['dailyActivity'] as List<dynamic>)
+            .map((item) => DailyReviewActivity.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class LearningProgressStats {
+  const LearningProgressStats({required this.total, required this.newCount, required this.dueCount, required this.reviewedCount, required this.repetitions, required this.lapses});
+
+  final int total;
+  final int newCount;
+  final int dueCount;
+  final int reviewedCount;
+  final int repetitions;
+  final int lapses;
+
+  factory LearningProgressStats.fromJson(Map<String, dynamic> json) => LearningProgressStats(
+        total: json['total'] as int,
+        newCount: json['new_count'] as int,
+        dueCount: json['due_count'] as int,
+        reviewedCount: json['reviewed_count'] as int,
+        repetitions: json['repetitions'] as int,
+        lapses: json['lapses'] as int,
+      );
+}
+
+class ReviewStatistics {
+  const ReviewStatistics({required this.total, required this.againCount, required this.hardCount, required this.goodCount, required this.easyCount, required this.firstReviewAt, required this.lastReviewAt});
+
+  final int total;
+  final int againCount;
+  final int hardCount;
+  final int goodCount;
+  final int easyCount;
+  final String? firstReviewAt;
+  final String? lastReviewAt;
+
+  factory ReviewStatistics.fromJson(Map<String, dynamic> json) => ReviewStatistics(
+        total: json['total'] as int,
+        againCount: json['again_count'] as int,
+        hardCount: json['hard_count'] as int,
+        goodCount: json['good_count'] as int,
+        easyCount: json['easy_count'] as int,
+        firstReviewAt: json['first_review_at'] as String?,
+        lastReviewAt: json['last_review_at'] as String?,
+      );
+}
+
+class DailyReviewActivity {
+  const DailyReviewActivity({required this.day, required this.reviews, required this.againCount});
+
+  final String day;
+  final int reviews;
+  final int againCount;
+
+  factory DailyReviewActivity.fromJson(Map<String, dynamic> json) => DailyReviewActivity(
+        day: json['day'] as String,
+        reviews: json['reviews'] as int,
+        againCount: json['againCount'] as int,
       );
 }
 

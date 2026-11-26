@@ -112,6 +112,8 @@ Progress is scoped to **user + vocabulary card + learning mode** (or an equivale
 
 For 5-box and 7-box modes, each card has a stage and next-due timestamp. Intervals are configuration, not hard-coded assumptions. For FSRS, store algorithm version, parameters/state, repetitions, lapses, and next-due timestamp as needed by the selected FSRS implementation. Record immutable review events so progress can be audited and statistics rebuilt.
 
+The initial FSRS implementation uses FSRS-4.5 with its published default parameters, 90% desired retention, a one-day minimum interval, and a 100-year maximum interval. It stores separate progress for each user, card, learning method, and translation direction (`foreign_to_local` or `local_to_foreign`). A vocabulary box's progress is the set of its cards in that scope. Reviews use the four FSRS ratings (Again, Hard, Good, Easy); each review appends an event containing the rating and scheduling transition. The initial study interaction is self-assessment after revealing the answer. The vocabulary-box statistics view reports card state, review totals by rating, and daily review activity for the selected method and direction.
+
 Free, random, error, and exam sessions may record answers for statistics. Exam mode must not mutate scheduled progress by default. A user's progress must be consistent across devices because the server is authoritative.
 
 ## 6. Proposed application screens

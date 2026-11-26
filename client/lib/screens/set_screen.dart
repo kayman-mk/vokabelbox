@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../app_theme.dart';
 import 'import_screen.dart';
+import 'statistics_screen.dart';
+import 'study_screen.dart';
 import '../widgets/common_widgets.dart';
 
 class SetScreen extends StatefulWidget {
@@ -56,6 +58,24 @@ class _SetScreenState extends State<SetScreen> {
     }
   }
 
+  Future<void> _startStudy(String direction) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => StudyScreen(api: widget.api, vocabularySet: widget.vocabularySet, direction: direction),
+      ),
+    );
+  }
+
+  Future<void> _openStatistics() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => StatisticsScreen(api: widget.api, vocabularySet: widget.vocabularySet),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +87,49 @@ class _SetScreenState extends State<SetScreen> {
           if (snapshot.hasError) return Text(snapshot.error.toString());
           final words = snapshot.data ?? [];
           if (words.isEmpty) return EmptyPanel(title: 'Noch keine Vokabeln', subtitle: 'Füge ein Wortpaar hinzu, um deine Lernbox zu füllen.', action: FilledButton.icon(onPressed: _addWord, icon: const Icon(Icons.add_rounded), label: const Text('Vokabel hinzufügen')));
-          return ListView.separated(padding: const EdgeInsets.all(24), itemCount: words.length, separatorBuilder: (_, __) => const SizedBox(height: 10), itemBuilder: (context, index) => WordRow(word: words[index]));
+          return ListView.separated(
+            padding: const EdgeInsets.all(24),
+            itemCount: words.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Mit FSRS lernen', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton.tonalIcon(
+                              onPressed: () => _startStudy('foreign_to_local'),
+                              icon: const Icon(Icons.translate_rounded),
+                              label: const Text('Fremdsprache → Muttersprache'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _startStudy('local_to_foreign'),
+                              icon: const Icon(Icons.swap_horiz_rounded),
+                              label: const Text('Muttersprache → Fremdsprache'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _openStatistics,
+                              icon: const Icon(Icons.bar_chart_rounded),
+                              label: const Text('Statistik'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return WordRow(word: words[index - 1]);
+            },
+          );
         },
       ))),
     );

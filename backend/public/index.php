@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 $config = require __DIR__ . '/../config.php';
 require __DIR__ . '/../src/uuid.php';
+require __DIR__ . '/../src/fsrs.php';
 
 session_name('vokabelbox_session');
 session_set_cookie_params([
@@ -214,6 +215,207 @@ if ($method === 'POST' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]
         error_log('Vocabulary import failed; the transaction was rolled back.');
         respond(500, ['error' => 'Import failed. No rows were imported.']);
     }
+}
+
+if (preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/study(?:/reviews)?$#', $path, $matches) === 1) {
+    $setId = strtolower($matches[1]);
+    $direction = (string)($_GET['direction'] ?? request_body()['direction'] ?? '');
+    $methodName = (string)($_GET['method'] ?? request_body()['method'] ?? 'fsrs');
+    if (!in_array($direction, ['foreign_to_local', 'local_to_foreign'], true) || $methodName !== 'fsrs') {
+        respond(422, ['error' => 'Choose FSRS and a valid study direction.']);
+    }
+    $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
+    $setQuery->execute(['id' => $setId, 'owner' => $userId]);
+    if ($setQuery->fetchColumn() === false) {
+        respond(404, ['error' => 'List not found.']);
+    }
+
+    if ($method === 'GET' && str_ends_with($path, '/study')) {
+        $limit = filter_var($_GET['limit'] ?? 20, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 50]]);
+        if ($limit === false) {
+            respond(422, ['error' => 'Study session limit must be between 1 and 50.']);
+        }
+        $stats = database()->prepare(
+            "SELECT COUNT(*) AS total,
+                    SUM(p.vocabulary_id IS NULL) AS new_count,
+                    SUM(p.vocabulary_id IS NOT NULL AND p.due_at <= UTC_TIMESTAMP()) AS due_count,
+                    SUM(p.repetitions > 0) AS reviewed_count,
+                    COALESCE(SUM(p.repetitions), 0) AS repetitions,
+                    COALESCE(SUM(p.lapses), 0) AS lapses
+             FROM vocabularies v
+             LEFT JOIN learning_progress p ON p.vocabulary_id = v.id AND p.user_id = :user_id
+                AND p.learning_method = 'fsrs' AND p.direction = :direction
+             WHERE v.vocabulary_set_id = :set_id"
+        );
+        $stats->execute(['user_id' => $userId, 'direction' => $direction, 'set_id' => $setId]);
+        $queue = database()->prepare(
+            "SELECT v.id, v.prompt, v.answer, p.state, p.repetitions, p.lapses, p.due_at
+             FROM vocabularies v
+             LEFT JOIN learning_progress p ON p.vocabulary_id = v.id AND p.user_id = :user_id
+                AND p.learning_method = 'fsrs' AND p.direction = :direction
+             WHERE v.vocabulary_set_id = :set_id
+               AND (p.vocabulary_id IS NULL OR p.due_at <= UTC_TIMESTAMP())
+             ORDER BY (p.vocabulary_id IS NOT NULL) DESC, p.due_at ASC, v.created_at ASC
+             LIMIT {$limit}"
+        );
+        $queue->execute(['user_id' => $userId, 'direction' => $direction, 'set_id' => $setId]);
+        $cards = array_map(static function (array $row) use ($direction): array {
+            $forward = $direction === 'foreign_to_local';
+            return [
+                'id' => $row['id'],
+                'front' => $forward ? $row['prompt'] : $row['answer'],
+                'back' => $forward ? $row['answer'] : $row['prompt'],
+                'state' => $row['state'] ?? 'new',
+                'repetitions' => (int)($row['repetitions'] ?? 0),
+                'lapses' => (int)($row['lapses'] ?? 0),
+                'dueAt' => $row['due_at'],
+            ];
+        }, $queue->fetchAll());
+        respond(200, [
+            'method' => 'fsrs',
+            'direction' => $direction,
+            'stats' => array_map(static fn($value) => (int)$value, $stats->fetch()),
+            'cards' => $cards,
+        ]);
+    }
+
+    if ($method === 'POST' && str_ends_with($path, '/study/reviews')) {
+        $body = request_body();
+        $vocabularyId = (string)($body['vocabularyId'] ?? '');
+        $rating = filter_var($body['rating'] ?? null, FILTER_VALIDATE_INT);
+        if (preg_match('/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/', $vocabularyId) !== 1 || $rating === false || $rating < 1 || $rating > 4) {
+            respond(422, ['error' => 'Vocabulary ID and an FSRS rating from 1 to 4 are required.']);
+        }
+        $pdo = database();
+        $pdo->beginTransaction();
+        try {
+            $word = $pdo->prepare('SELECT id FROM vocabularies WHERE id = :word AND vocabulary_set_id = :set_id');
+            $word->execute(['word' => strtolower($vocabularyId), 'set_id' => $setId]);
+            if ($word->fetchColumn() === false) {
+                $pdo->rollBack();
+                respond(404, ['error' => 'Vocabulary not found.']);
+            }
+            $createProgress = $pdo->prepare(
+                "INSERT IGNORE INTO learning_progress
+                    (user_id, vocabulary_id, learning_method, direction, algorithm_version)
+                 VALUES (:user_id, :vocabulary_id, 'fsrs', :direction, 'fsrs-4.5')"
+            );
+            $createProgress->execute(['user_id' => $userId, 'vocabulary_id' => strtolower($vocabularyId), 'direction' => $direction]);
+            $lock = $pdo->prepare(
+                "SELECT stability, difficulty, last_review_at, repetitions, lapses
+                 FROM learning_progress WHERE user_id = :user_id AND vocabulary_id = :vocabulary_id
+                   AND learning_method = 'fsrs' AND direction = :direction FOR UPDATE"
+            );
+            $lock->execute(['user_id' => $userId, 'vocabulary_id' => strtolower($vocabularyId), 'direction' => $direction]);
+            $previous = $lock->fetch();
+            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            $beforeStability = $previous['stability'] === null ? null : (float)$previous['stability'];
+            $beforeDifficulty = $previous['difficulty'] === null ? null : (float)$previous['difficulty'];
+            $schedule = fsrs_review($beforeStability, $beforeDifficulty, $previous['last_review_at'], $rating, $now);
+            $reviewedAt = $now->format('Y-m-d H:i:s');
+            $dueAt = $schedule['dueAt']->format('Y-m-d H:i:s');
+            $update = $pdo->prepare(
+                "UPDATE learning_progress SET algorithm_version = 'fsrs-4.5', state = 'review', stability = :stability,
+                    difficulty = :difficulty, repetitions = repetitions + 1, lapses = lapses + :lapse,
+                    last_review_at = :reviewed_at, due_at = :due_at
+                 WHERE user_id = :user_id AND vocabulary_id = :vocabulary_id AND learning_method = 'fsrs' AND direction = :direction"
+            );
+            $update->execute([
+                'stability' => $schedule['stability'], 'difficulty' => $schedule['difficulty'],
+                'lapse' => $rating === 1 ? 1 : 0, 'reviewed_at' => $reviewedAt, 'due_at' => $dueAt,
+                'user_id' => $userId, 'vocabulary_id' => strtolower($vocabularyId), 'direction' => $direction,
+            ]);
+            $event = $pdo->prepare(
+                "INSERT INTO learning_review_events
+                    (id, user_id, vocabulary_id, learning_method, direction, algorithm_version, rating, reviewed_at,
+                     stability_before, stability_after, difficulty_before, difficulty_after, due_at)
+                 VALUES (:id, :user_id, :vocabulary_id, 'fsrs', :direction, 'fsrs-4.5', :rating, :reviewed_at,
+                     :stability_before, :stability_after, :difficulty_before, :difficulty_after, :due_at)"
+            );
+            $event->execute([
+                'id' => uuid_v4(), 'user_id' => $userId, 'vocabulary_id' => strtolower($vocabularyId),
+                'direction' => $direction, 'rating' => $rating, 'reviewed_at' => $reviewedAt,
+                'stability_before' => $beforeStability, 'stability_after' => $schedule['stability'],
+                'difficulty_before' => $beforeDifficulty, 'difficulty_after' => $schedule['difficulty'], 'due_at' => $dueAt,
+            ]);
+            $pdo->commit();
+            respond(200, ['rating' => $rating, 'dueAt' => $dueAt, 'intervalDays' => $schedule['intervalDays']]);
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('FSRS review failed; the transaction was rolled back.');
+            respond(500, ['error' => 'Could not save this review.']);
+        }
+    }
+}
+
+if ($method === 'GET' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/statistics$#', $path, $matches) === 1) {
+    $setId = strtolower($matches[1]);
+    $direction = (string)($_GET['direction'] ?? '');
+    $methodName = (string)($_GET['method'] ?? 'fsrs');
+    if (!in_array($direction, ['foreign_to_local', 'local_to_foreign'], true) || $methodName !== 'fsrs') {
+        respond(422, ['error' => 'Choose FSRS and a valid study direction.']);
+    }
+    $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
+    $setQuery->execute(['id' => $setId, 'owner' => $userId]);
+    if ($setQuery->fetchColumn() === false) {
+        respond(404, ['error' => 'List not found.']);
+    }
+
+    $progress = database()->prepare(
+        "SELECT COUNT(v.id) AS total,
+                COALESCE(SUM(p.vocabulary_id IS NULL), 0) AS new_count,
+                COALESCE(SUM(p.vocabulary_id IS NOT NULL AND p.due_at <= UTC_TIMESTAMP()), 0) AS due_count,
+                COALESCE(SUM(p.repetitions > 0), 0) AS reviewed_count,
+                COALESCE(SUM(p.repetitions), 0) AS repetitions,
+                COALESCE(SUM(p.lapses), 0) AS lapses
+         FROM vocabularies v
+         LEFT JOIN learning_progress p ON p.vocabulary_id = v.id AND p.user_id = :user_id
+            AND p.learning_method = :method AND p.direction = :direction
+         WHERE v.vocabulary_set_id = :set_id"
+    );
+    $progress->execute(['user_id' => $userId, 'method' => $methodName, 'direction' => $direction, 'set_id' => $setId]);
+
+    $reviews = database()->prepare(
+        "SELECT COUNT(*) AS total,
+                COALESCE(SUM(e.rating = 1), 0) AS again_count,
+                COALESCE(SUM(e.rating = 2), 0) AS hard_count,
+                COALESCE(SUM(e.rating = 3), 0) AS good_count,
+                COALESCE(SUM(e.rating = 4), 0) AS easy_count,
+                MIN(e.reviewed_at) AS first_review_at,
+                MAX(e.reviewed_at) AS last_review_at
+         FROM learning_review_events e
+         JOIN vocabularies v ON v.id = e.vocabulary_id
+         WHERE e.user_id = :user_id AND e.learning_method = :method AND e.direction = :direction
+           AND v.vocabulary_set_id = :set_id"
+    );
+    $reviews->execute(['user_id' => $userId, 'method' => $methodName, 'direction' => $direction, 'set_id' => $setId]);
+
+    $activity = database()->prepare(
+        "SELECT DATE_FORMAT(e.reviewed_at, '%Y-%m-%d') AS day, COUNT(*) AS reviews,
+                COALESCE(SUM(e.rating = 1), 0) AS again_count
+         FROM learning_review_events e
+         JOIN vocabularies v ON v.id = e.vocabulary_id
+         WHERE e.user_id = :user_id AND e.learning_method = :method AND e.direction = :direction
+           AND v.vocabulary_set_id = :set_id
+           AND e.reviewed_at >= UTC_DATE() - INTERVAL 13 DAY
+         GROUP BY DATE_FORMAT(e.reviewed_at, '%Y-%m-%d')
+         ORDER BY day"
+    );
+    $activity->execute(['user_id' => $userId, 'method' => $methodName, 'direction' => $direction, 'set_id' => $setId]);
+
+    respond(200, [
+        'method' => $methodName,
+        'direction' => $direction,
+        'progress' => array_map(static fn($value) => is_numeric($value) ? (int)$value : $value, $progress->fetch()),
+        'reviews' => array_map(static fn($value) => is_numeric($value) ? (int)$value : $value, $reviews->fetch()),
+        'dailyActivity' => array_map(static fn(array $row): array => [
+            'day' => $row['day'],
+            'reviews' => (int)$row['reviews'],
+            'againCount' => (int)$row['again_count'],
+        ], $activity->fetchAll()),
+    ]);
 }
 
 if (preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/words$#', $path, $matches) === 1) {
