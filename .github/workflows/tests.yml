@@ -68,25 +68,9 @@ jobs:
           path: www.tgz
           if-no-files-found: error
 
-  create-release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [web-package]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download www artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: www
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" www.tgz --generate-notes
-
   deploy:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [create-release]
+    needs: [web-package]
     runs-on: ubuntu-latest
     environment: prod
     steps:
