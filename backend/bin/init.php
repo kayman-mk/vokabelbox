@@ -63,7 +63,7 @@ if (PHP_SAPI === 'cli') {
     fwrite(STDOUT, $migrationOutput->fetch());
 }
 
-require __DIR__ . '/../src/uuid.php';
+require_once __DIR__ . '/../src/uuid.php';
 $pdo = new PDO(
     sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $database['host'], $database['port'], $database['name']),
     $database['user'],

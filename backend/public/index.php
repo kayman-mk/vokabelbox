@@ -79,7 +79,7 @@ if ($method === 'GET' && $path === '/api/v1/health') {
     respond(200, ['status' => 'ok']);
 }
 
-if ($path === '/api/v1/setup') {
+if (in_array($path, ['/api/v1/setup', '/api/v1/setup.php'], true)) {
     require __DIR__ . '/../bin/init.php';
     exit;
 }
