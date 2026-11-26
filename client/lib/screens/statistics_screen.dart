@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import 'fsrs_reference_screen.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({required this.api, required this.vocabularySet, super.key});
@@ -34,7 +35,19 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Lernstatistik')),
+        appBar: AppBar(
+          title: const Text('Lernstatistik'),
+          actions: [
+            IconButton(
+              tooltip: 'FSRS Referenz',
+              icon: const Icon(Icons.info_outline_rounded),
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const FsrsReferenceScreen()),
+              ),
+            ),
+          ],
+        ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
