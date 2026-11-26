@@ -43,8 +43,45 @@ jobs:
       - name: Run isolated infrastructure tests
         run: python tests/run_infra_tests.py
 
-  web-package:
+  prepare-version:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [unit-tests, infrastructure-tests]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      app_version: ${{ steps.version.outputs.app_version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Calculate next version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          if [[ -n "$LATEST_TAG" ]]; then
+            BASE_VERSION="${LATEST_TAG#v}"
+          else
+            BASE_VERSION="$(awk '$1 == "version:" { split($2, parts, /\+/); print parts[1]; exit }' client/pubspec.yaml)"
+          fi
+          if [[ ! "$BASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Cannot increment release version: $BASE_VERSION" >&2
+            exit 1
+          fi
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH_NUMBER=$((10#${BASH_REMATCH[3]} + 1))
+          VERSION="$MAJOR.$MINOR.$PATCH_NUMBER"
+          BUILD_NUMBER="$GITHUB_RUN_NUMBER"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "app_version=$VERSION+$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+  web-package:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [prepare-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +92,10 @@ jobs:
           cache: true
       - name: Build web docroot
         working-directory: client
+        env:
+          APP_VERSION: ${{ needs.prepare-version.outputs.app_version }}
         run: |
+          sed -i "s/^version:.*/version: $APP_VERSION/" pubspec.yaml
           flutter pub get
           flutter build web --release --dart-define=API_BASE_URL=/api/v1
       - name: Package www.tgz
@@ -69,7 +109,7 @@ jobs:
 
   create-release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [web-package]
+    needs: [prepare-version, web-package]
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.release.outputs.tag }}
@@ -82,25 +122,29 @@ jobs:
         with:
           name: www
           path: release-assets
+      - name: Version the release source
+        id: versioned-source
+        env:
+          APP_VERSION: ${{ needs.prepare-version.outputs.app_version }}
+          RELEASE_TAG: ${{ needs.prepare-version.outputs.tag }}
+        run: |
+          sed -i "s/^version:.*/version: $APP_VERSION/" client/pubspec.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/pubspec.yaml
+          git commit -m "chore: release $RELEASE_TAG"
+          git tag "$RELEASE_TAG"
+          git push origin "$RELEASE_TAG"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Create versioned release
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare-version.outputs.tag }}
+          RELEASE_COMMIT: ${{ steps.versioned-source.outputs.commit }}
         run: |
-          APP_VERSION="$(sed -n 's/^version:[[:space:]]*//p' client/pubspec.yaml | head -n 1 | tr -d "'\"\r")"
-          VERSION="${APP_VERSION%%+*}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid client version in client/pubspec.yaml: $APP_VERSION" >&2
-            exit 1
-          fi
-          TAG="v$VERSION"
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; bump client/pubspec.yaml to create a new release."
-            echo "tag=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          gh release create "$TAG" release-assets/www.tgz --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          gh release create "$RELEASE_TAG" release-assets/www.tgz --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --generate-notes
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   deploy:
     if: needs.create-release.outputs.tag != ''
