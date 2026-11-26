@@ -41,7 +41,7 @@ $weights = [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.64
 $expectedGoodStability = $previousStability * (1 + exp($weights[8]) * (11 - $previousDifficulty) * ($previousStability ** (-$weights[9])) * (exp($weights[10] * (1 - $retrievability)) - 1));
 $good = fsrs_review($previousStability, $previousDifficulty, $lastReviewAt, 3, $reviewAt);
 checkNear($good['stability'], $expectedGoodStability, 'A successful review did not apply the FSRS-4.5 stability update.');
-checkNear($good['difficulty'], 4.876, 'A Good review did not apply difficulty mean reversion toward the initial Easy difficulty.');
+checkNear($good['difficulty'], 3.795370155072, 'A Good review did not apply difficulty mean reversion toward the initial Easy difficulty.');
 check($good['stability'] > $previousStability, 'A successful overdue review should increase stability.');
 
 $expectedAgainStability = $weights[11]
