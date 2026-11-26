@@ -101,6 +101,8 @@ A learner can select a mode per user and list. Learning mode modules must have c
 ### 4.6 Dashboard, statistics, and navigation
 
 - Dashboard shows due cards, learning progress, and a quick-start action.
+- Learners can set a modest daily review goal and see today's progress toward it.
+- Learners can choose a study-session size and see a brief completion summary.
 - Main destinations: Dashboard, Learning boxes/lists, Study session, Vocabulary management/import, and Statistics.
 - Statistics include correct/incorrect outcomes, activity over time, and card counts by stage/mode where meaningful.
 - Navigation adapts to phone, tablet, and desktop layouts. Support touch gestures and keyboard operation in addition to visible controls.
@@ -119,11 +121,11 @@ Free, random, error, and exam sessions may record answers for statistics. Exam m
 ## 6. Proposed application screens
 
 1. **Login** – username and password.
-2. **Dashboard** – due count, progress summary, quick start.
+2. **Dashboard** – due count, progress summary, daily goal, quick start.
 3. **Lists** – private and shared lists accessible to the user; create/manage actions according to permission.
 4. **List detail** – vocabulary, lessons/tags, study entry point, import and management actions according to permission.
 5. **Study setup** – select learning mode, direction (A→B or B→A), answer mode, and optional session size/order.
-6. **Study session** – prompt, reveal/input, feedback, next card, progress and pause/resume.
+6. **Study session** – prompt, reveal/input, feedback, next card, progress, pause/resume, and completion summary.
 7. **Import flow** – file selection, delimiter/column mapping, preview/validation, confirmation, result report.
 8. **Statistics** – activity, accuracy, due cards, and progress by mode/list.
 
@@ -195,6 +197,7 @@ Request/response schemas, pagination, error format, idempotency for review/impor
 - All seven learning modes are available; scheduled modes maintain their own state and review history.
 - Both self-assessment and typed checking work; case and surrounding whitespace do not affect a typed match, and multiple accepted answers are supported.
 - A review performed on one device is reflected on another after refresh/login.
+- A learner can set a daily review goal, see review progress toward it, choose a session size, and see a completion summary.
 - The interface is usable at phone, tablet, and desktop widths and does not expose profile or registration pages.
 - Flutter Web and Android builds can be produced from the shared client; iOS build configuration is maintained and buildable in a macOS environment.
 - Offline learning is not required for this release and is clearly unavailable without connectivity.

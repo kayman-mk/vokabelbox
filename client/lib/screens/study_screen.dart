@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 
 class StudyScreen extends StatefulWidget {
-  const StudyScreen({required this.api, required this.vocabularySet, required this.direction, super.key});
+  const StudyScreen({required this.api, required this.vocabularySet, required this.direction, this.limit = 20, super.key});
 
   final ApiClient api;
   final VocabularySet vocabularySet;
   final String direction;
+  final int limit;
 
   @override
   State<StudyScreen> createState() => _StudyScreenState();
@@ -18,13 +19,14 @@ class _StudyScreenState extends State<StudyScreen> {
   int _index = 0;
   bool _revealed = false;
   bool _saving = false;
+  final List<int> _ratings = [0, 0, 0, 0, 0];
 
   bool get _foreignToLocal => widget.direction == 'foreign_to_local';
 
   @override
   void initState() {
     super.initState();
-    _session = widget.api.getStudySession(widget.vocabularySet.id, widget.direction);
+    _session = widget.api.getStudySession(widget.vocabularySet.id, widget.direction, limit: widget.limit);
   }
 
   Future<void> _rate(StudyCard card, int rating) async {
@@ -32,6 +34,7 @@ class _StudyScreenState extends State<StudyScreen> {
     try {
       await widget.api.reviewStudyCard(widget.vocabularySet.id, card.id, widget.direction, rating);
       if (mounted) setState(() {
+        _ratings[rating]++;
         _index++;
         _revealed = false;
         _saving = false;
@@ -106,7 +109,22 @@ class _StudyScreenState extends State<StudyScreen> {
                         Icon(dueNew == 0 ? Icons.check_circle_outline_rounded : Icons.school_outlined, size: 48),
                         const SizedBox(height: 12),
                         Text(dueNew == 0 ? 'Alles gelernt' : 'Lernsitzung beendet', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-                        Text(dueNew == 0 ? 'Für diese Richtung sind gerade keine Karten fällig.' : 'Alle Karten dieser Sitzung sind bewertet.', textAlign: TextAlign.center),
+                        Text(dueNew == 0 && _index == 0 ? 'Für diese Richtung sind gerade keine Karten fällig.' : 'Alle Karten dieser Sitzung sind bewertet.', textAlign: TextAlign.center),
+                        if (_index > 0) ...[
+                          const SizedBox(height: 20),
+                          Card(child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('Dein Ergebnis', style: Theme.of(context).textTheme.titleMedium),
+                              const SizedBox(height: 12),
+                              Text('$_index ${_index == 1 ? 'Karte' : 'Karten'} bewertet · ${_ratings[1]} nochmal · ${_ratings[2]} schwer · ${_ratings[3]} gut · ${_ratings[4]} einfach'),
+                              const SizedBox(height: 12),
+                              LinearProgressIndicator(value: _index / cards.length, minHeight: 8, borderRadius: BorderRadius.circular(8)),
+                              const SizedBox(height: 8),
+                              Text(_ratings[1] == 0 ? 'Stark! Heute waren alle Antworten mindestens gut.' : 'Gut gemacht. Die schwierigen Karten kommen passend wieder.', style: const TextStyle(height: 1.4)),
+                            ]),
+                          )),
+                        ],
                       ],
                     ],
                   ),

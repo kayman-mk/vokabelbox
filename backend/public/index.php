@@ -181,6 +181,30 @@ if ($method === 'GET' && $path === '/api/v1/auth/me') {
     respond(200, ['id' => $user['id'], 'username' => $user['username']]);
 }
 
+if (in_array($path, ['/api/v1/motivation', '/api/v1/motivation/'], true)) {
+    $user = authenticated_user();
+    if ($method === 'GET') {
+        $query = database()->prepare(
+            "SELECT u.daily_review_goal AS dailyGoal,
+                    (SELECT COUNT(*) FROM learning_review_events e
+                     WHERE e.user_id = u.id AND e.reviewed_at >= UTC_DATE()) AS reviewsToday
+             FROM users u WHERE u.id = :user_id"
+        );
+        $query->execute(['user_id' => $user['id']]);
+        $progress = $query->fetch();
+        respond(200, ['dailyGoal' => (int)$progress['dailyGoal'], 'reviewsToday' => (int)$progress['reviewsToday']]);
+    }
+    if ($method === 'PUT') {
+        $goal = filter_var(request_body()['dailyGoal'] ?? null, FILTER_VALIDATE_INT);
+        if ($goal === false || $goal < 1 || $goal > 100) {
+            respond(422, ['error' => 'Daily goal must be between 1 and 100 cards.']);
+        }
+        $update = database()->prepare('UPDATE users SET daily_review_goal = :goal WHERE id = :user_id');
+        $update->execute(['goal' => $goal, 'user_id' => $user['id']]);
+        respond(200, ['dailyGoal' => $goal]);
+    }
+}
+
 $user = authenticated_user();
 $userId = $user['id'];
 
