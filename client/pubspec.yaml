@@ -1,7 +1,7 @@
 name: vokabelhain
 description: Cross-platform vocabulary learning client.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.11+70
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
