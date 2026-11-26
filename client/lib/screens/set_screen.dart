@@ -59,10 +59,21 @@ class _SetScreenState extends State<SetScreen> {
   }
 
   Future<void> _startStudy(String direction) async {
+    final limit = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Wie viele Karten möchtest du lernen?'),
+        children: [5, 10, 20, 50].map((count) => SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, count),
+          child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('$count Karten · etwa ${(count / 2).ceil()} Minuten')),
+        )).toList(),
+      ),
+    );
+    if (limit == null || !mounted) return;
     await Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => StudyScreen(api: widget.api, vocabularySet: widget.vocabularySet, direction: direction),
+        builder: (_) => StudyScreen(api: widget.api, vocabularySet: widget.vocabularySet, direction: direction, limit: limit),
       ),
     );
   }

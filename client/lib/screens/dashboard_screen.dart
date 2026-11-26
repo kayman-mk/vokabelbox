@@ -18,14 +18,53 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late Future<List<VocabularySet>> _sets;
+  late Future<DailyMotivation> _motivation;
 
   @override
   void initState() {
     super.initState();
     _sets = widget.api.getSets();
+    _motivation = widget.api.getDailyMotivation();
   }
 
-  void _reload() => setState(() => _sets = widget.api.getSets());
+  void _reload() => setState(() {
+        _sets = widget.api.getSets();
+        _motivation = widget.api.getDailyMotivation();
+      });
+
+  Future<void> _editDailyGoal(int currentGoal) async {
+    final controller = TextEditingController(text: '$currentGoal');
+    final goal = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tagesziel festlegen'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Karten pro Tag', helperText: 'Wähle ein Ziel zwischen 1 und 100.'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text);
+              if (value != null && value >= 1 && value <= 100) Navigator.pop(context, value);
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (goal == null) return;
+    try {
+      await widget.api.setDailyGoal(goal);
+      if (mounted) setState(() => _motivation = widget.api.getDailyMotivation());
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
 
   Future<void> _createSet() async {
     final nameController = TextEditingController();
@@ -107,6 +146,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1120),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                FutureBuilder<DailyMotivation>(
+                  future: _motivation,
+                  builder: (context, snapshot) {
+                    final progress = snapshot.data;
+                    if (progress == null) return const SizedBox.shrink();
+                    final ratio = (progress.reviewsToday / progress.dailyGoal).clamp(0.0, 1.0).toDouble();
+                    final reached = progress.reviewsToday >= progress.dailyGoal;
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Icon(reached ? Icons.emoji_events_outlined : Icons.today_rounded),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(reached ? 'Tagesziel erreicht!' : 'Dein Tagesziel', style: Theme.of(context).textTheme.titleMedium)),
+                            TextButton.icon(onPressed: () => _editDailyGoal(progress.dailyGoal), icon: const Icon(Icons.edit_outlined), label: const Text('Ändern')),
+                          ]),
+                          Text('${progress.reviewsToday} von ${progress.dailyGoal} Karten heute bewertet'),
+                          const SizedBox(height: 10),
+                          LinearProgressIndicator(value: ratio, minHeight: 8, borderRadius: BorderRadius.circular(8)),
+                          if (!reached) ...[
+                            const SizedBox(height: 8),
+                            Text('Noch ${progress.dailyGoal - progress.reviewsToday} ${progress.dailyGoal - progress.reviewsToday == 1 ? 'Karte' : 'Karten'} bis zum Ziel.', style: const TextStyle(color: vokabelMuted)),
+                          ],
+                        ]),
+                      ),
+                    );
+                  },
+                ),
                 if (constraints.maxWidth < 620) ...[
                   const Text('Deine Lernboxen', style: TextStyle(fontSize: 34, color: vokabelInk, fontWeight: FontWeight.w700, letterSpacing: -1)),
                   const SizedBox(height: 8),

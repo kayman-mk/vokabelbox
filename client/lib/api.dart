@@ -35,6 +35,12 @@ class ApiClient {
     await _post('/auth/logout', const {});
   }
 
+  Future<DailyMotivation> getDailyMotivation() async =>
+      DailyMotivation.fromJson(_decode(await _client.get(_uri('/motivation'))));
+
+  Future<DailyMotivation> setDailyGoal(int goal) async =>
+      DailyMotivation.fromJson(await _put('/motivation', {'dailyGoal': goal}));
+
   Future<List<VocabularySet>> getSets() async {
     final data = _decode(await _client.get(_uri('/sets')));
     return (data['sets'] as List<dynamic>)
@@ -66,10 +72,11 @@ class ApiClient {
     await _post('/sets/$setId/words', {'prompt': prompt, 'answer': answer});
   }
 
-  Future<StudySession> getStudySession(String setId, String direction) async {
+  Future<StudySession> getStudySession(String setId, String direction, {int limit = 20}) async {
     final uri = _uri('/sets/$setId/study', queryParameters: {
       'method': 'fsrs',
       'direction': direction,
+      'limit': '$limit',
     });
     final data = _decode(await _client.get(uri));
     return StudySession.fromJson(data);
@@ -129,6 +136,15 @@ class ApiClient {
     return _decode(response);
   }
 
+  Future<Map<String, dynamic>> _put(String path, Map<String, Object?> body) async {
+    final response = await _client.put(
+      _uri(path),
+      headers: const {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode(body),
+    );
+    return _decode(response);
+  }
+
   Map<String, dynamic> _decode(http.Response response) {
     final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -136,6 +152,18 @@ class ApiClient {
     }
     return data;
   }
+}
+
+class DailyMotivation {
+  const DailyMotivation({required this.dailyGoal, required this.reviewsToday});
+
+  final int dailyGoal;
+  final int reviewsToday;
+
+  factory DailyMotivation.fromJson(Map<String, dynamic> json) => DailyMotivation(
+        dailyGoal: json['dailyGoal'] as int,
+        reviewsToday: json['reviewsToday'] as int? ?? 0,
+      );
 }
 
 class VocabularySet {
