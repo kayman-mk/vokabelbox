@@ -45,6 +45,10 @@ class SetCard extends StatelessWidget {
             ]),
             const SizedBox(height: 18),
             Text(set.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: vokabelInk, fontWeight: FontWeight.w700, fontSize: 18)),
+            if (set.description.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(set.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: vokabelMuted, fontSize: 14)),
+            ],
             const SizedBox(height: 7),
             Text('${set.wordCount} Vokabeln', style: const TextStyle(color: vokabelMuted, fontSize: 14)),
             const SizedBox(height: 16),

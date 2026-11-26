@@ -28,19 +28,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _reload() => setState(() => _sets = widget.api.getSets());
 
   Future<void> _createSet() async {
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final details = await showDialog<(String, String)>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Neue Lernbox'),
-        content: TextField(controller: controller, autofocus: true, maxLength: 120, decoration: const InputDecoration(hintText: 'z. B. Englisch – Unit 1'), onSubmitted: (_) => Navigator.pop(context, controller.text.trim())),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')), FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Erstellen'))],
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nameController, autofocus: true, maxLength: 120, decoration: const InputDecoration(labelText: 'Name', hintText: 'z. B. Englisch – Unit 1')),
+          TextField(controller: descriptionController, maxLength: 500, maxLines: 3, decoration: const InputDecoration(labelText: 'Beschreibung (optional)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(context, (nameController.text.trim(), descriptionController.text.trim())), child: const Text('Erstellen')),
+        ],
       ),
     );
-    controller.dispose();
-    if (name == null || name.trim().isEmpty) return;
+    nameController.dispose();
+    descriptionController.dispose();
+    if (details == null || details.$1.isEmpty) return;
     try {
-      await widget.api.createSet(name.trim());
+      await widget.api.createSet(details.$1, description: details.$2);
       _reload();
     } catch (error) {
       if (mounted) _showError(error);
@@ -48,28 +56,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _renameSet(VocabularySet set) async {
-    final controller = TextEditingController(text: set.name);
-    final name = await showDialog<String>(
+    final nameController = TextEditingController(text: set.name);
+    final descriptionController = TextEditingController(text: set.description);
+    final details = await showDialog<(String, String)>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Lernbox umbenennen'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 120,
-          decoration: const InputDecoration(labelText: 'Name der Lernbox'),
-          onSubmitted: (_) => Navigator.pop(context, controller.text.trim()),
-        ),
+        title: const Text('Lernbox bearbeiten'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nameController, autofocus: true, maxLength: 120, decoration: const InputDecoration(labelText: 'Name der Lernbox')),
+          TextField(controller: descriptionController, maxLength: 500, maxLines: 3, decoration: const InputDecoration(labelText: 'Beschreibung (optional)')),
+        ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Speichern')),
+          FilledButton(onPressed: () => Navigator.pop(context, (nameController.text.trim(), descriptionController.text.trim())), child: const Text('Speichern')),
         ],
       ),
     );
-    controller.dispose();
-    if (name == null || name.trim().isEmpty || name.trim() == set.name) return;
+    nameController.dispose();
+    descriptionController.dispose();
+    if (details == null || details.$1.isEmpty || (details.$1 == set.name && details.$2 == set.description)) return;
     try {
-      await widget.api.renameSet(set.id, name.trim());
+      await widget.api.renameSet(set.id, details.$1, description: details.$2);
       _reload();
     } catch (error) {
       if (mounted) _showError(error);

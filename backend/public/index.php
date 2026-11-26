@@ -202,40 +202,51 @@ if ($method === 'POST' && $path === '/api/v1/auth/logout') {
 
 if ($method === 'GET' && $path === '/api/v1/sets') {
     $query = database()->prepare(
-        'SELECT s.id, s.name, COUNT(v.id) AS word_count
+        'SELECT s.id, s.name, s.description, COUNT(v.id) AS word_count
          FROM vocabulary_sets s
          LEFT JOIN vocabularies v ON v.vocabulary_set_id = s.id
          WHERE s.owner_user_id = :owner_user_id
-         GROUP BY s.id, s.name
+         GROUP BY s.id, s.name, s.description
          ORDER BY s.created_at DESC'
     );
     $query->execute(['owner_user_id' => $userId]);
     respond(200, ['sets' => array_map(static fn(array $row): array => [
         'id' => $row['id'],
         'name' => $row['name'],
+        'description' => $row['description'],
         'wordCount' => (int)$row['word_count'],
     ], $query->fetchAll())]);
 }
 
 if ($method === 'POST' && $path === '/api/v1/sets') {
-    $name = trim((string)(request_body()['name'] ?? ''));
+    $body = request_body();
+    $name = trim((string)($body['name'] ?? ''));
+    $description = trim((string)($body['description'] ?? ''));
     if ($name === '' || mb_strlen($name) > 120) {
         respond(422, ['error' => 'List name must contain between 1 and 120 characters.']);
     }
+    if (mb_strlen($description) > 500) {
+        respond(422, ['error' => 'List description must not exceed 500 characters.']);
+    }
     $id = uuid_v4();
-    $insert = database()->prepare('INSERT INTO vocabulary_sets (id, owner_user_id, name) VALUES (:id, :owner, :name)');
-    $insert->execute(['id' => $id, 'owner' => $userId, 'name' => $name]);
-    respond(201, ['id' => $id, 'name' => $name, 'wordCount' => 0]);
+    $insert = database()->prepare('INSERT INTO vocabulary_sets (id, owner_user_id, name, description) VALUES (:id, :owner, :name, :description)');
+    $insert->execute(['id' => $id, 'owner' => $userId, 'name' => $name, 'description' => $description]);
+    respond(201, ['id' => $id, 'name' => $name, 'description' => $description, 'wordCount' => 0]);
 }
 
 if ($method === 'PUT' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$#', $path, $matches) === 1) {
     $setId = strtolower($matches[1]);
-    $name = trim((string)(request_body()['name'] ?? ''));
+    $body = request_body();
+    $name = trim((string)($body['name'] ?? ''));
+    $description = trim((string)($body['description'] ?? ''));
     if ($name === '' || mb_strlen($name) > 120) {
         respond(422, ['error' => 'List name must contain between 1 and 120 characters.']);
     }
-    $update = database()->prepare('UPDATE vocabulary_sets SET name = :name WHERE id = :id AND owner_user_id = :owner');
-    $update->execute(['name' => $name, 'id' => $setId, 'owner' => $userId]);
+    if (mb_strlen($description) > 500) {
+        respond(422, ['error' => 'List description must not exceed 500 characters.']);
+    }
+    $update = database()->prepare('UPDATE vocabulary_sets SET name = :name, description = :description WHERE id = :id AND owner_user_id = :owner');
+    $update->execute(['name' => $name, 'description' => $description, 'id' => $setId, 'owner' => $userId]);
     if ($update->rowCount() === 0) {
         $exists = database()->prepare('SELECT 1 FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
         $exists->execute(['id' => $setId, 'owner' => $userId]);
@@ -243,7 +254,7 @@ if ($method === 'PUT' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{
             respond(404, ['error' => 'List not found.']);
         }
     }
-    respond(200, ['id' => $setId, 'name' => $name]);
+    respond(200, ['id' => $setId, 'name' => $name, 'description' => $description]);
 }
 
 if ($method === 'POST' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/imports$#', $path, $matches) === 1) {

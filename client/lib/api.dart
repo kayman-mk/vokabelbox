@@ -42,15 +42,15 @@ class ApiClient {
         .toList();
   }
 
-  Future<VocabularySet> createSet(String name) async => VocabularySet.fromJson(
-        await _post('/sets', {'name': name}),
+  Future<VocabularySet> createSet(String name, {String description = ''}) async => VocabularySet.fromJson(
+        await _post('/sets', {'name': name, 'description': description}),
       );
 
-  Future<void> renameSet(String setId, String name) async {
+  Future<void> renameSet(String setId, String name, {String description = ''}) async {
     final response = await _client.put(
       _uri('/sets/$setId'),
       headers: const {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({'name': name, 'description': description}),
     );
     _decode(response);
   }
@@ -139,15 +139,17 @@ class ApiClient {
 }
 
 class VocabularySet {
-  const VocabularySet({required this.id, required this.name, required this.wordCount});
+  const VocabularySet({required this.id, required this.name, this.description = '', required this.wordCount});
 
   final String id;
   final String name;
+  final String description;
   final int wordCount;
 
   factory VocabularySet.fromJson(Map<String, dynamic> json) => VocabularySet(
         id: json['id'] as String,
         name: json['name'] as String,
+        description: json['description'] as String? ?? '',
         wordCount: json['wordCount'] as int,
       );
 }
