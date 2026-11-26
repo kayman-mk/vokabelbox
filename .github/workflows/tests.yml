@@ -45,6 +45,7 @@ jobs:
         run: python tests/run_infra_tests.py
 
   web-package:
+    needs: [unit-tests, infrastructure-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
