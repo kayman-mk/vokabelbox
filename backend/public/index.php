@@ -79,6 +79,11 @@ if ($method === 'GET' && $path === '/api/v1/health') {
     respond(200, ['status' => 'ok']);
 }
 
+if ($path === '/api/v1/setup') {
+    require __DIR__ . '/../bin/init.php';
+    exit;
+}
+
 if ($method === 'POST' && $path === '/api/v1/auth/login') {
     $body = request_body();
     $username = trim((string)($body['username'] ?? ''));

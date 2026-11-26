@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/../src/config_loader.php';
+require_once __DIR__ . '/../src/config_loader.php';
 $config = load_app_config();
 $database = $config['database'];
 $admin = $config['development_account'];
@@ -11,7 +11,10 @@ $adminPassword = $admin['password'];
 if (PHP_SAPI !== 'cli') {
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
-    if (($_SERVER['HTTPS'] ?? '') === '' || $_SERVER['HTTPS'] === 'off') {
+    $host = parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST);
+    $isLocalhost = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+    $isHttps = ($_SERVER['HTTPS'] ?? '') !== '' && $_SERVER['HTTPS'] !== 'off';
+    if (!$isHttps && !$isLocalhost) {
         http_response_code(400);
         exit('Run database setup over HTTPS.');
     }
