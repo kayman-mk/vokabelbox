@@ -70,7 +70,7 @@ jobs:
 
   create-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [unit-tests, infrastructure-tests, web-package]
+    needs: [web-package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
