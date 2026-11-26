@@ -4,7 +4,6 @@ on:
   pull_request:
   push:
     branches: [main]
-    tags: ['v*']
 
 permissions:
   contents: read
@@ -68,18 +67,54 @@ jobs:
           path: www.tgz
           if-no-files-found: error
 
-  deploy:
-    if: startsWith(github.ref, 'refs/tags/v')
+  create-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [web-package]
     runs-on: ubuntu-latest
-    environment: prod
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    permissions:
+      contents: write
     steps:
-      - name: Download www artifact
+      - uses: actions/checkout@v4
+      - name: Download www package
         uses: actions/download-artifact@v4
         with:
           name: www
+          path: release-assets
+      - name: Create versioned release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APP_VERSION="$(sed -n 's/^version:[[:space:]]*//p' client/pubspec.yaml | head -n 1 | tr -d "'\"\r")"
+          VERSION="${APP_VERSION%%+*}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid client version in client/pubspec.yaml: $APP_VERSION" >&2
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; bump client/pubspec.yaml to create a new release."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh release create "$TAG" release-assets/www.tgz --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    if: needs.create-release.outputs.tag != ''
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Download package from versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.create-release.outputs.tag }}
+        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern www.tgz --dir release-assets
       - name: Extract docroot files
-        run: mkdir www && tar -xzf www.tgz -C www
+        run: mkdir www && tar -xzf release-assets/www.tgz -C www
       - name: Deploy docroot over FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:

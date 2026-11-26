@@ -43,7 +43,7 @@ Run the UUID unit test with PHP 8.4 using `php backend/tests/uuid_test.php`. Run
 
 ## CI deployment package
 
-Every pull request and push to `main` builds the Flutter web app and publishes a `www` workflow artifact containing `www.tgz`, but does not deploy. The release process creates a version tag such as `v1.2.0`; pushing that tag triggers the same CI checks and web build. If they pass, the workflow deploys to the server over FTPS using the `prod` GitHub Actions environment. The workflow does not create a GitHub Release or tag. Set these environment secrets on `prod`:
+Every pull request and push to `main` runs the tests first. If they pass, the workflow builds the Flutter web app and publishes a `www` workflow artifact containing `www.tgz`. On `main`, it then creates a GitHub Release and version tag from `client/pubspec.yaml` (for example, `0.1.0+1` becomes `v0.1.0`), attaching `www.tgz` to the release. If a new release was created, the workflow downloads `www.tgz` from that versioned release and deploys it over FTPS using the `prod` GitHub Actions environment. Tag pushes do not trigger tests or artifact builds. Bump the app version in `client/pubspec.yaml` to publish a new release; an already existing version is not redeployed. Set these environment secrets on `prod`:
 
 - `FTPS_DEPLOY_HOST`: FTPS server hostname.
 - `FTPS_DEPLOY_USERNAME` and `FTPS_DEPLOY_PASSWORD`: deployment credentials.
