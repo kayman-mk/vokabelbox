@@ -117,6 +117,60 @@ class RunningInfrastructureTests(unittest.TestCase):
         saved_set = next(item for item in sets["sets"] if item["id"] == vocabulary_set["id"])
         self.assertEqual(saved_set["wordCount"], 2)
 
+    def test_fsrs_statistics_are_isolated_by_box_and_direction(self):
+        client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
+        status, _, user = request(
+            "/api/v1/auth/login", "POST", {"username": USERNAME, "password": PASSWORD}, client
+        )
+        self.assertEqual(status, 200)
+
+        def make_box_and_word(name):
+            status, _, box = request("/api/v1/sets", "POST", {"name": name}, client)
+            self.assertEqual(status, 201)
+            status, _, word = request(
+                f"/api/v1/sets/{box['id']}/words", "POST", {"prompt": "house", "answer": "Haus"}, client
+            )
+            self.assertEqual(status, 201)
+            return box, word
+
+        box_one, word_one = make_box_and_word(f"FSRS stats one {uuid.uuid4()}")
+        box_two, _ = make_box_and_word(f"FSRS stats two {uuid.uuid4()}")
+        forward = "foreign_to_local"
+        reverse = "local_to_foreign"
+
+        status, _, _ = request(f"/api/v1/sets/{box_one['id']}/statistics?method=fsrs&direction={forward}")
+        self.assertEqual(status, 401)
+
+        def statistics(box_id, direction):
+            status, _, payload = request(
+                f"/api/v1/sets/{box_id}/statistics?method=fsrs&direction={direction}", opener=client
+            )
+            self.assertEqual(status, 200)
+            return payload
+
+        initial = statistics(box_one["id"], forward)
+        self.assertEqual(initial["method"], "fsrs")
+        self.assertEqual(initial["direction"], forward)
+        self.assertEqual(initial["progress"]["total"], 1)
+        self.assertEqual(initial["progress"]["repetitions"], 0)
+        self.assertEqual(initial["reviews"]["total"], 0)
+
+        status, _, review = request(
+            f"/api/v1/sets/{box_one['id']}/study/reviews?method=fsrs&direction={forward}",
+            "POST", {"vocabularyId": word_one["id"], "rating": 3, "userId": "00000000-0000-4000-8000-000000000000"}, client,
+        )
+        self.assertEqual(status, 200)
+        self.assertGreaterEqual(review["intervalDays"], 1)
+
+        reviewed = statistics(box_one["id"], forward)
+        self.assertEqual(reviewed["progress"]["repetitions"], 1)
+        self.assertEqual(reviewed["progress"]["reviewed_count"], 1)
+        self.assertEqual(reviewed["reviews"]["total"], 1)
+        self.assertEqual(reviewed["reviews"]["good_count"], 1)
+        self.assertEqual(sum(day["reviews"] for day in reviewed["dailyActivity"]), 1)
+        self.assertEqual(statistics(box_one["id"], reverse)["reviews"]["total"], 0)
+        self.assertEqual(statistics(box_two["id"], forward)["reviews"]["total"], 0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

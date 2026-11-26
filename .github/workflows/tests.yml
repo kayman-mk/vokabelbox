@@ -20,6 +20,8 @@ jobs:
           coverage: none
       - name: Run UUID unit tests
         run: php backend/tests/uuid_test.php
+      - name: Run FSRS scheduler unit tests
+        run: php backend/tests/fsrs_test.php
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
