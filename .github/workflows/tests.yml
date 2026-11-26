@@ -164,6 +164,9 @@ jobs:
     if: needs.create-release.outputs.tag != ''
     needs: [create-release]
     runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      queue: max
     environment: prod
     steps:
       - name: Download package from versioned release
