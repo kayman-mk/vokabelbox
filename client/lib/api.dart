@@ -103,7 +103,12 @@ class ApiClient {
         ...?queryParameters,
       });
     }
-    return Uri.parse('$_baseUrl$path');
+    final uri = Uri.parse('$_baseUrl$path');
+    if (queryParameters == null) return uri;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      ...queryParameters,
+    });
   }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) async {
