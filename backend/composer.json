@@ -1,6 +1,6 @@
 {
-  "name": "kayman-mk/vokabelbox-backend",
-  "description": "VokabelBox PHP API and schema migrations",
+  "name": "kayman-mk/vokabelhain-backend",
+  "description": "Vokabelhain PHP API and schema migrations",
   "type": "project",
   "require": {
     "php": ">=8.3",

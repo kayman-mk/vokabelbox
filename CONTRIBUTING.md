@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve VokabelBox. The repository is currently in the planning stage, so changes should keep the implementation aligned with [the specification](docs/SPECIFICATION.md).
+Thanks for helping improve Vokabelhain. The repository is currently in the planning stage, so changes should keep the implementation aligned with [the specification](docs/SPECIFICATION.md).
 
 ## Before you start
 
@@ -25,7 +25,7 @@ Keep changes consistent with the selected Flutter/Dart client, PHP REST API, and
 
 ## Licensing contributions
 
-By submitting a contribution for inclusion in VokabelBox, you agree that your contribution is offered under the project's [PolyForm Noncommercial License 1.0.0](LICENSE). Submit only work that you have the right to contribute under these terms.
+By submitting a contribution for inclusion in Vokabelhain, you agree that your contribution is offered under the project's [PolyForm Noncommercial License 1.0.0](LICENSE). Submit only work that you have the right to contribute under these terms.
 
 ## Community standards
 

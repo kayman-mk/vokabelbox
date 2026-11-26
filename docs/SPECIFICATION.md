@@ -1,4 +1,4 @@
-# VokabelBox – Product and Technical Specification
+# Vokabelhain – Product and Technical Specification
 
 **Status:** Draft for implementation planning  
 **Source:** [Shared planning conversation](https://chatgpt.com/share/6b048a12-f46c-83ed-9342-1da4ee43303f)  
@@ -6,7 +6,7 @@
 
 ## 1. Product overview
 
-VokabelBox is a multi-user vocabulary learning application for desktop browsers, tablets, and phones. It uses one Flutter/Dart client codebase for Flutter Web, Android, and iOS. Users sign in to study vocabulary lists and track progress. There are no public sign-ups, profile pages, or user-managed account settings. Administrators provision accounts manually in the database or through a controlled administrative script.
+Vokabelhain is a multi-user vocabulary learning application for desktop browsers, tablets, and phones. It uses one Flutter/Dart client codebase for Flutter Web, Android, and iOS. Users sign in to study vocabulary lists and track progress. There are no public sign-ups, profile pages, or user-managed account settings. Administrators provision accounts manually in the database or through a controlled administrative script.
 
 The web, Android, and iOS clients use the same PHP REST API. MySQL is the authoritative store for accounts, lists, vocabulary, settings, and learning progress, allowing a user to continue on another device with the same state. Offline learning and synchronization are deferred to a later release.
 

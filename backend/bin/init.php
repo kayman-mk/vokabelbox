@@ -86,5 +86,5 @@ if ($query->fetchColumn() === false) {
 }
 
 if (PHP_SAPI !== 'cli') {
-    echo 'Database setup completed. You can now sign in to VokabelBox.';
+    echo 'Database setup completed. You can now sign in to Vokabelhain.';
 }
