@@ -193,6 +193,6 @@ jobs:
             set ssl:check-hostname no;
             open --user \"$FTPS_DEPLOY_USERNAME\" --env-password \"ftp://$FTPS_DEPLOY_HOST:21\" &&
             cd /httpdocs &&
-            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/site/\" . &&
+            mirror --reverse --verbose --delete --parallel=4 \"$GITHUB_WORKSPACE/site/\" . &&
             bye
           "
