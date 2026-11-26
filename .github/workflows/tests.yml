@@ -159,14 +159,27 @@ jobs:
         run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern www.tgz --dir release-assets
       - name: Extract docroot files
         run: mkdir www && tar -xzf release-assets/www.tgz -C www
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes lftp
       - name: Deploy docroot over FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTPS_DEPLOY_HOST }}
-          username: ${{ secrets.FTPS_DEPLOY_USERNAME }}
-          password: ${{ secrets.FTPS_DEPLOY_PASSWORD }}
-          protocol: ftps
-          security: strict
-          server-dir: /httpdocs/
-          local-dir: www/
-          dangerous-clean-slate: false
+        env:
+          FTPS_DEPLOY_HOST: ${{ secrets.FTPS_DEPLOY_HOST }}
+          FTPS_DEPLOY_USERNAME: ${{ secrets.FTPS_DEPLOY_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTPS_DEPLOY_PASSWORD }}
+        run: |
+          lftp --norc -c "
+            set cmd:fail-exit true;
+            set ftp:ssl-auth TLS;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ftp:ssl-protect-list true;
+            set ftp:list-options -a;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            open --user \"$FTPS_DEPLOY_USERNAME\" --env-password \"ftp://$FTPS_DEPLOY_HOST:21\" &&
+            cd /httpdocs &&
+            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/www/\" . &&
+            bye
+          "
