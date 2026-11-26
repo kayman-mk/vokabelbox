@@ -4,6 +4,7 @@ name: vokabelbox
 
 services:
   web:
+    image: vokabelhain/web:ci
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,6 +16,7 @@ services:
     restart: unless-stopped
 
   api:
+    image: vokabelhain/api:ci
     build:
       context: .
       dockerfile: backend/Dockerfile

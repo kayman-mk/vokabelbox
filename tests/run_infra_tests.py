@@ -37,7 +37,8 @@ def main():
         subprocess.run(compose + ["-p", PROJECT, *args], cwd=ROOT, env=environment, check=True)
 
     try:
-        run_compose("up", "--build", "-d")
+        up_args = ["up", "-d"] if environment.get("INFRA_TEST_IMAGES_PREBUILT") == "1" else ["up", "--build", "-d"]
+        run_compose(*up_args)
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
             try:
