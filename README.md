@@ -47,9 +47,8 @@ Every pull request and push to `main` runs the tests first. If they pass, the wo
 
 - `FTPS_DEPLOY_HOST`: FTPS server hostname.
 - `FTPS_DEPLOY_USERNAME` and `FTPS_DEPLOY_PASSWORD`: deployment credentials.
-- `FTPS_DEPLOY_PATH`: server directory for the web document root, with a trailing slash (for example, `/public_html/`).
 
-The deployment syncs the new files without clearing the live directory first, then removes files from previous deployments that are no longer in the archive. This avoids taking the site offline during upload. Keep `FTPS_DEPLOY_PATH` scoped to the site's document root. The archive contains the static web client only; configure the web server to route `/api/` requests to the VokabelBox PHP API. The client is built with `/api/v1` as its API base URL.
+The deployment uses FTPS with strict certificate validation and uploads to `/httpdocs/`, the server's web document root. It syncs new files without clearing the live directory first, then removes files from previous deployments that are no longer in the archive. The archive contains the static web client only; configure the web server to route `/api/` requests to the VokabelBox PHP API. The client is built with `/api/v1` as its API base URL.
 
 ## Contributing
 

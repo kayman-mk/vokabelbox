@@ -122,6 +122,7 @@ jobs:
           username: ${{ secrets.FTPS_DEPLOY_USERNAME }}
           password: ${{ secrets.FTPS_DEPLOY_PASSWORD }}
           protocol: ftps
-          server-dir: ${{ secrets.FTPS_DEPLOY_PATH }}
+          security: strict
+          server-dir: /httpdocs/
           local-dir: www/
           dangerous-clean-slate: false
