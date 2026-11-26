@@ -32,7 +32,7 @@ class RunningInfrastructureTests(unittest.TestCase):
     def test_site_and_database_health(self):
         status, raw, _ = request("/")
         self.assertEqual(status, 200)
-        self.assertIn(b"VokabelBox", raw)
+        self.assertIn(b"Vokabelhain", raw)
 
         status, _, payload = request("/api/v1/health")
         self.assertEqual(status, 200)
