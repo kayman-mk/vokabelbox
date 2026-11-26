@@ -6,18 +6,18 @@ import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
 
 void main() {
-  runApp(const VokabelBoxApp());
+  runApp(const VokabelhainApp());
 }
 
 
-class VokabelBoxApp extends StatefulWidget {
-  const VokabelBoxApp({super.key});
+class VokabelhainApp extends StatefulWidget {
+  const VokabelhainApp({super.key});
 
   @override
-  State<VokabelBoxApp> createState() => _VokabelBoxAppState();
+  State<VokabelhainApp> createState() => _VokabelhainAppState();
 }
 
-class _VokabelBoxAppState extends State<VokabelBoxApp> {
+class _VokabelhainAppState extends State<VokabelhainApp> {
   final _api = ApiClient();
   Map<String, dynamic>? _user;
   bool _loading = true;
@@ -33,7 +33,7 @@ class _VokabelBoxAppState extends State<VokabelBoxApp> {
     try {
       _user = await _api.currentUser();
     } catch (_) {
-      _connectionError = 'Could not connect to VokabelBox. Check that Docker Compose is running.';
+      _connectionError = 'Could not connect to Vokabelhain. Check that Docker Compose is running.';
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -54,7 +54,7 @@ class _VokabelBoxAppState extends State<VokabelBoxApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'VokabelBox',
+      title: 'Vokabelhain',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

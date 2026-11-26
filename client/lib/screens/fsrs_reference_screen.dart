@@ -42,7 +42,7 @@ class FsrsReferenceScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Verwendung in VokabelBox', style: Theme.of(context).textTheme.titleMedium),
+                        Text('Verwendung in Vokabelhain', style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 12),
                         const Text('Algorithmusversion: FSRS-4.5'),
                         const Text('Parameter: veröffentlichte Standardwerte'),
@@ -50,7 +50,7 @@ class FsrsReferenceScreen extends StatelessWidget {
                         const Text('Bewertungen: Nochmal, Schwer, Gut und Einfach'),
                         const SizedBox(height: 12),
                         const Text(
-                          'Der PHP-Scheduler in VokabelBox ist eine eigenständige Implementierung der veröffentlichten Formeln.',
+                          'Der PHP-Scheduler in Vokabelhain ist eine eigenständige Implementierung der veröffentlichten Formeln.',
                         ),
                       ],
                     ),
