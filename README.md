@@ -43,7 +43,7 @@ Run the UUID unit test with PHP 8.4 using `php backend/tests/uuid_test.php`. Run
 
 ## CI deployment package
 
-Every pull request, push to `main`, and published GitHub Release builds the Flutter web app and publishes a `www` workflow artifact containing `www.tgz`. Publishing a Release also deploys the archive contents to the server over FTPS after all CI jobs pass. Set these GitHub Actions repository secrets:
+Every pull request, push to `main`, and published GitHub Release builds the Flutter web app and publishes a `www` workflow artifact containing `www.tgz`. Publishing a Release also deploys the archive contents to the server over FTPS after all CI jobs pass, using the `prod` GitHub Actions environment. Set these environment secrets on `prod`:
 
 - `FTPS_DEPLOY_HOST`: FTPS server hostname.
 - `FTPS_DEPLOY_USERNAME` and `FTPS_DEPLOY_PASSWORD`: deployment credentials.

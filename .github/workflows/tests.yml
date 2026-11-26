@@ -72,6 +72,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: [unit-tests, infrastructure-tests, web-package]
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - name: Download www artifact
         uses: actions/download-artifact@v4
