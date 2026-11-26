@@ -25,9 +25,10 @@ class FieldLabel extends StatelessWidget {
 }
 
 class SetCard extends StatelessWidget {
-  const SetCard({required this.set, required this.onTap});
+  const SetCard({required this.set, required this.onTap, required this.onRename});
   final VocabularySet set;
   final VoidCallback onTap;
+  final VoidCallback onRename;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -38,9 +39,16 @@ class SetCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(padding: const EdgeInsets.all(22), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFF0F2FF), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.bookmark_outline_rounded, color: vokabelAccent)),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFF0F2FF), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.bookmark_outline_rounded, color: vokabelAccent)),
+              IconButton(tooltip: 'Lernbox umbenennen', onPressed: onRename, icon: const Icon(Icons.edit_outlined, color: vokabelAccent)),
+            ]),
             const SizedBox(height: 18),
             Text(set.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: vokabelInk, fontWeight: FontWeight.w700, fontSize: 18)),
+            if (set.description.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(set.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: vokabelMuted, fontSize: 14)),
+            ],
             const SizedBox(height: 7),
             Text('${set.wordCount} Vokabeln', style: const TextStyle(color: vokabelMuted, fontSize: 14)),
             const SizedBox(height: 16),
