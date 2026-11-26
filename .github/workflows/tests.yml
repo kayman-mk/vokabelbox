@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -42,3 +44,48 @@ jobs:
           python-version: '3.12'
       - name: Run isolated infrastructure tests
         run: python tests/run_infra_tests.py
+
+  web-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.1'
+          cache: true
+      - name: Build web docroot
+        working-directory: client
+        run: |
+          flutter pub get
+          flutter build web --release --dart-define=API_BASE_URL=/api/v1
+      - name: Package www.tgz
+        run: tar -czf www.tgz -C client/build/web .
+      - name: Upload www.tgz
+        uses: actions/upload-artifact@v4
+        with:
+          name: www
+          path: www.tgz
+          if-no-files-found: error
+
+  deploy:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: [unit-tests, infrastructure-tests, web-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download www artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: www
+      - name: Extract docroot files
+        run: mkdir www && tar -xzf www.tgz -C www
+      - name: Deploy docroot over FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTPS_DEPLOY_HOST }}
+          username: ${{ secrets.FTPS_DEPLOY_USERNAME }}
+          password: ${{ secrets.FTPS_DEPLOY_PASSWORD }}
+          protocol: ftps
+          server-dir: ${{ secrets.FTPS_DEPLOY_PATH }}
+          local-dir: www/
+          dangerous-clean-slate: true
