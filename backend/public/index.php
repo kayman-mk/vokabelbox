@@ -69,6 +69,10 @@ function authenticated_user(): array
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if ($path === '/api.php') {
+    $route = (string)($_GET['route'] ?? '/');
+    $path = '/api/v1' . (str_starts_with($route, '/') ? $route : '/' . $route);
+}
 
 if ($method === 'GET' && $path === '/api/v1/health') {
     database()->query('SELECT 1');

@@ -102,22 +102,21 @@ jobs:
         run: |
           sed -i "s/^version:.*/version: $APP_VERSION/" pubspec.yaml
           flutter pub get
-          flutter build web --release --dart-define=API_BASE_URL=/api/v1
+          flutter build web --release --dart-define=API_BASE_URL=/api.php
       - name: Install backend dependencies
         run: composer install --working-dir backend --no-dev --no-interaction --prefer-dist --classmap-authoritative
       - name: Build deployment package
         run: |
-          mkdir -p package/httpdocs/api/v1
-          cp -R client/build/web/. package/httpdocs/
-          cp -R backend/. package/httpdocs/api/v1/
-          cp deploy/httpdocs.htaccess package/httpdocs/.htaccess
-          cp deploy/api.htaccess package/httpdocs/api/v1/.htaccess
-          tar -czf site.tgz -C package .
-      - name: Upload site.tgz
+          mkdir -p package/docroot/api/v1
+          cp -R client/build/web/. package/docroot/
+          cp -R backend/. package/docroot/api/v1/
+          cp api.php package/docroot/api.php
+          cd package/docroot && zip -qr ../../site.zip .
+      - name: Upload site.zip
         uses: actions/upload-artifact@v4
         with:
           name: site
-          path: site.tgz
+          path: site.zip
           if-no-files-found: error
 
   create-release:
@@ -156,7 +155,7 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare-version.outputs.tag }}
           RELEASE_COMMIT: ${{ steps.versioned-source.outputs.commit }}
         run: |
-          gh release create "$RELEASE_TAG" release-assets/site.tgz --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --generate-notes
+          gh release create "$RELEASE_TAG" release-assets/site.zip --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --generate-notes
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   deploy:
@@ -169,9 +168,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.create-release.outputs.tag }}
-        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern site.tgz --dir release-assets
+        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern site.zip --dir release-assets
       - name: Extract deployment package
-        run: mkdir site && tar -xzf release-assets/site.tgz -C site
+        run: mkdir site && unzip -q release-assets/site.zip -d site
       - name: Install lftp
         run: |
           sudo apt-get update -qq
@@ -193,6 +192,6 @@ jobs:
             set ssl:check-hostname no;
             open --user \"$FTPS_DEPLOY_USERNAME\" --env-password \"ftp://$FTPS_DEPLOY_HOST:21\" &&
             cd /httpdocs &&
-            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/site/httpdocs/\" . &&
+            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/site/\" . &&
             bye
           "
