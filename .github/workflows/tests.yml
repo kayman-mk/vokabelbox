@@ -111,6 +111,7 @@ jobs:
           cp -R client/build/web/. package/docroot/
           cp -R backend/. package/docroot/api/v1/
           cp api.php package/docroot/api.php
+          cp setup.php package/docroot/setup.php
           cd package/docroot && zip -qr ../../site.zip .
       - name: Upload site.zip
         uses: actions/upload-artifact@v4
