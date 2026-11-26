@@ -41,6 +41,16 @@ The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection 
 
 Run the UUID unit test with PHP 8.4 using `php backend/tests/uuid_test.php`. Run the CSV parser unit tests from `client/` with `flutter test`. Run the infrastructure tests with `python tests/run_infra_tests.py`. The infrastructure runner creates a uniquely named Compose project on port `18081`, with its own MySQL volume and `test` / `test` development account, then removes that test project's containers and volume when finished. It does not connect to or change the normal local stack on port `8081`.
 
+## CI deployment package
+
+Every pull request and push to `main` builds the Flutter web app and publishes a `www` workflow artifact containing `www.tgz`. To publish a production release, push a version tag such as `v1.2.0`. CI runs first; only if all tests and the web build pass does the workflow create a GitHub Release with `www.tgz` attached, then deploy to the server over FTPS using the `prod` GitHub Actions environment. Set these environment secrets on `prod`:
+
+- `FTPS_DEPLOY_HOST`: FTPS server hostname.
+- `FTPS_DEPLOY_USERNAME` and `FTPS_DEPLOY_PASSWORD`: deployment credentials.
+- `FTPS_DEPLOY_PATH`: server directory for the web document root, with a trailing slash (for example, `/public_html/`).
+
+The deployment syncs the new files without clearing the live directory first, then removes files from previous deployments that are no longer in the archive. This avoids taking the site offline during upload. Keep `FTPS_DEPLOY_PATH` scoped to the site's document root. The archive contains the static web client only; configure the web server to route `/api/` requests to the VokabelBox PHP API. The client is built with `/api/v1` as its API base URL.
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Pull requests are merged using squash commits; the pull request title and description become the resulting commit message on `main`.
