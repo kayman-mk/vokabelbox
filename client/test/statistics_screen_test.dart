@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:vokabelbox/api.dart';
-import 'package:vokabelbox/screens/statistics_screen.dart';
+import 'package:vokabelhain/api.dart';
+import 'package:vokabelhain/screens/statistics_screen.dart';
 
 void main() {
   testWidgets('shows box statistics and fetches them separately by direction', (tester) async {

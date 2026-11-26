@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PORT = "18081"
-PROJECT = f"vokabelbox-test-{uuid.uuid4().hex[:8]}"
+PROJECT = f"vokabelhain-test-{uuid.uuid4().hex[:8]}"
 
 
 def main():
@@ -24,8 +24,8 @@ def main():
     environment = os.environ.copy()
     environment.update({
         "APP_PORT": PORT,
-        "MYSQL_DATABASE": "vokabelbox_test",
-        "MYSQL_USER": "vokabelbox_test",
+        "MYSQL_DATABASE": "vokabelhain_test",
+        "MYSQL_USER": "vokabelhain_test",
         "MYSQL_PASSWORD": "isolated-test-database-password",
         "MYSQL_ROOT_PASSWORD": "isolated-test-root-password",
         "DEV_ADMIN_USERNAME": "test",

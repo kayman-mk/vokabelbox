@@ -2,7 +2,7 @@
 
 ## Our standard
 
-Everyone participating in the VokabelBox project is expected to make the community welcoming and respectful. Treat others with patience, assume good intent while addressing impact, and focus criticism on ideas and work rather than people.
+Everyone participating in the Vokabelhain project is expected to make the community welcoming and respectful. Treat others with patience, assume good intent while addressing impact, and focus criticism on ideas and work rather than people.
 
 Unacceptable behavior includes harassment, discrimination, personal attacks, doxxing, intimidation, and sustained disruptive conduct.
 

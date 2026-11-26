@@ -1,3 +1,7 @@
+# Keep the Compose project name stable across the repository rename so existing
+# container names and the mysql_data volume continue to be used.
+name: vokabelbox
+
 services:
   web:
     build:
