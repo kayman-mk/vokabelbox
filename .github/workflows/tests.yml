@@ -112,6 +112,7 @@ jobs:
           cp -R backend/. package/docroot/api/v1/
           cp api.php package/docroot/api.php
           cp setup.php package/docroot/setup.php
+          cp deploy/httpdocs.htaccess package/docroot/.htaccess
           cd package/docroot && zip -qr ../../site.zip .
       - name: Upload site.zip
         uses: actions/upload-artifact@v4
