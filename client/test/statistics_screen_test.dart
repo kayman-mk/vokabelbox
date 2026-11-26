@@ -38,6 +38,7 @@ void main() {
               {'day': '2026-11-26', 'reviews': 5, 'againCount': 1},
             ],
           }),
+          200,
           headers: {'content-type': 'application/json'},
         );
       }),
@@ -85,6 +86,7 @@ void main() {
               },
               'dailyActivity': [],
             }),
+            200,
             headers: {'content-type': 'application/json'},
           )),
     );
