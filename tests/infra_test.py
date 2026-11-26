@@ -38,6 +38,19 @@ class RunningInfrastructureTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload, {"status": "ok"})
 
+        status, _, _ = request("/api/v1/auth/logout", "POST", {})
+        self.assertEqual(status, 401)
+
+        client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
+        status, _, _ = request(
+            "/api/v1/auth/login", "POST", {"username": USERNAME, "password": PASSWORD}, client
+        )
+        self.assertEqual(status, 200)
+
+        status, _, payload = request("/api/v1/health", opener=client)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload, {"status": "ok"})
+
     def test_login_and_vocabulary_flow(self):
         client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
 

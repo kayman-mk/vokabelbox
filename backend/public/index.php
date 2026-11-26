@@ -67,6 +67,72 @@ function authenticated_user(): array
     return $user;
 }
 
+function is_local_ip(string $ip): bool
+{
+    $packed = inet_pton($ip);
+    if ($packed === false) {
+        return false;
+    }
+    $ranges = str_contains($ip, ':')
+        ? [['::1', 128], ['fc00::', 7], ['fe80::', 10]]
+        : [['127.0.0.0', 8], ['10.0.0.0', 8], ['172.16.0.0', 12], ['192.168.0.0', 16]];
+    foreach ($ranges as [$network, $prefix]) {
+        $networkPacked = inet_pton($network);
+        if ($networkPacked === false || strlen($networkPacked) !== strlen($packed)) {
+            continue;
+        }
+        $bytes = intdiv($prefix, 8);
+        $remainingBits = $prefix % 8;
+        if (substr($packed, 0, $bytes) !== substr($networkPacked, 0, $bytes)) {
+            continue;
+        }
+        if ($remainingBits === 0 || (ord($packed[$bytes]) >> (8 - $remainingBits)) === (ord($networkPacked[$bytes]) >> (8 - $remainingBits))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function enforce_rate_limit(string $ip, string $bucket, float $capacity, float $refillPerSecond): void
+{
+    $directory = sys_get_temp_dir() . '/vokabelbox-rate-limits';
+    if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+        respond(503, ['error' => 'Request limiter is unavailable.']);
+    }
+    $file = fopen($directory . '/' . hash('sha256', $ip) . '.json', 'c+');
+    if ($file === false || !flock($file, LOCK_EX)) {
+        if (is_resource($file)) {
+            fclose($file);
+        }
+        respond(503, ['error' => 'Request limiter is unavailable.']);
+    }
+
+    $state = json_decode(stream_get_contents($file) ?: '', true);
+    $state = is_array($state) ? $state : [];
+    $now = microtime(true);
+    $bucketState = is_array($state) ? ($state[$bucket] ?? null) : null;
+    $tokens = is_array($bucketState) && is_numeric($bucketState['tokens'] ?? null)
+        ? min($capacity, (float)$bucketState['tokens'] + max(0.0, $now - (float)($bucketState['updated'] ?? $now)) * $refillPerSecond)
+        : $capacity;
+    $allowed = $tokens >= 1.0;
+    if ($allowed) {
+        $tokens -= 1.0;
+    }
+    $state[$bucket] = ['tokens' => $tokens, 'updated' => $now];
+    rewind($file);
+    ftruncate($file, 0);
+    fwrite($file, json_encode($state, JSON_THROW_ON_ERROR));
+    fflush($file);
+    flock($file, LOCK_UN);
+    fclose($file);
+
+    if (!$allowed) {
+        $retryAfter = max(1, (int)ceil((1.0 - $tokens) / $refillPerSecond));
+        header('Retry-After: ' . $retryAfter);
+        respond(429, ['error' => 'Too many requests. Please try again later.']);
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 if ($path === '/api.php') {
@@ -74,7 +140,16 @@ if ($path === '/api.php') {
     $path = '/api/v1' . (str_starts_with($route, '/') ? $route : '/' . $route);
 }
 
+$clientIp = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+enforce_rate_limit($clientIp, 'all', 120.0, 2.0);
+if ($method === 'POST' && $path === '/api/v1/auth/login') {
+    enforce_rate_limit($clientIp, 'login', 5.0, 1.0 / 180.0);
+}
+
 if ($method === 'GET' && $path === '/api/v1/health') {
+    if (!is_local_ip($clientIp)) {
+        respond(403, ['error' => 'Health endpoint is available only from local networks.']);
+    }
     database()->query('SELECT 1');
     respond(200, ['status' => 'ok']);
 }
@@ -106,6 +181,9 @@ if ($method === 'GET' && $path === '/api/v1/auth/me') {
     respond(200, ['id' => $user['id'], 'username' => $user['username']]);
 }
 
+$user = authenticated_user();
+$userId = $user['id'];
+
 if ($method === 'POST' && $path === '/api/v1/auth/logout') {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -121,9 +199,6 @@ if ($method === 'POST' && $path === '/api/v1/auth/logout') {
     session_destroy();
     respond(200, ['status' => 'ok']);
 }
-
-$user = authenticated_user();
-$userId = $user['id'];
 
 if ($method === 'GET' && $path === '/api/v1/sets') {
     $query = database()->prepare(

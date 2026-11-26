@@ -35,7 +35,7 @@ The starter site supports login, creating private vocabulary lists, adding/listi
 
 VokabelBox has an independent PHP implementation of FSRS-4.5, using the published default parameters and 90% desired retention. See the [FSRS algorithm reference](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm) for the formulas and version details, and the [Open Spaced Repetition `py-fsrs` project](https://github.com/open-spaced-repetition/py-fsrs) for a reference implementation.
 
-The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in the project-root `config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
+The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in the project-root `config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. The API applies per-IP rate limits (120 requests per minute overall and a stricter five-request login bucket that refills over 15 minutes), stored in the PHP system temporary directory. This development setup is not configured for public deployment (for example, it has no production TLS termination).
 
 ## Tests
 
