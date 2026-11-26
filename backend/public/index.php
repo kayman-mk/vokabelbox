@@ -3,11 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-$configPath = dirname(__DIR__, 2) . '/config.php';
-if (!is_file($configPath)) {
-    $configPath = dirname(__DIR__, 3) . '/config.php';
-}
-$config = require $configPath;
+require __DIR__ . '/../src/config_loader.php';
+$config = load_app_config();
 require __DIR__ . '/../src/uuid.php';
 require __DIR__ . '/../src/fsrs.php';
 

@@ -1,11 +1,8 @@
 <?php
 declare(strict_types=1);
 
-$configPath = dirname(__DIR__, 2) . '/config.php';
-if (!is_file($configPath)) {
-    $configPath = dirname(__DIR__, 3) . '/config.php';
-}
-$config = require $configPath;
+require __DIR__ . '/../src/config_loader.php';
+$config = load_app_config();
 $database = $config['database'];
 $admin = $config['development_account'];
 $adminUsername = $admin['username'];

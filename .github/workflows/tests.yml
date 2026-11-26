@@ -107,11 +107,11 @@ jobs:
         run: composer install --working-dir backend --no-dev --no-interaction --prefer-dist --classmap-authoritative
       - name: Build deployment package
         run: |
-          mkdir -p package/httpdocs/api
+          mkdir -p package/httpdocs/api/v1
           cp -R client/build/web/. package/httpdocs/
-          cp -R backend/. package/httpdocs/api/
+          cp -R backend/. package/httpdocs/api/v1/
           cp deploy/httpdocs.htaccess package/httpdocs/.htaccess
-          cp deploy/api.htaccess package/httpdocs/api/.htaccess
+          cp deploy/api.htaccess package/httpdocs/api/v1/.htaccess
           tar -czf site.tgz -C package .
       - name: Upload site.tgz
         uses: actions/upload-artifact@v4
