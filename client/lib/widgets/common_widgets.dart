@@ -10,7 +10,7 @@ class BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 38, height: 38, decoration: BoxDecoration(color: light ? const Color(0xFF34456F) : const Color(0xFFE9ECFF), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.style_rounded, color: light ? Colors.white : vokabelAccent, size: 22)),
+        Container(width: 38, height: 38, decoration: BoxDecoration(color: light ? const Color(0xFF34456F) : const Color(0xFFE9ECFF), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.auto_stories_rounded, color: light ? Colors.white : vokabelAccent, size: 22)),
         const SizedBox(width: 11),
         Text('VokabelBox', style: TextStyle(color: light ? Colors.white : vokabelInk, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.4)),
       ]);
