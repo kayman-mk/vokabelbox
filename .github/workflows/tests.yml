@@ -88,4 +88,4 @@ jobs:
           protocol: ftps
           server-dir: ${{ secrets.FTPS_DEPLOY_PATH }}
           local-dir: www/
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
