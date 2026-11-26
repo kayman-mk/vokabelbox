@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-$config = require __DIR__ . '/../config.php';
+require __DIR__ . '/../src/config_loader.php';
+$config = load_app_config();
 require __DIR__ . '/../src/uuid.php';
 require __DIR__ . '/../src/fsrs.php';
 

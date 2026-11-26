@@ -85,6 +85,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -98,13 +103,21 @@ jobs:
           sed -i "s/^version:.*/version: $APP_VERSION/" pubspec.yaml
           flutter pub get
           flutter build web --release --dart-define=API_BASE_URL=/api/v1
-      - name: Package www.tgz
-        run: tar -czf www.tgz -C client/build/web .
-      - name: Upload www.tgz
+      - name: Install backend dependencies
+        run: composer install --working-dir backend --no-dev --no-interaction --prefer-dist --classmap-authoritative
+      - name: Build deployment package
+        run: |
+          mkdir -p package/httpdocs/api/v1
+          cp -R client/build/web/. package/httpdocs/
+          cp -R backend/. package/httpdocs/api/v1/
+          cp deploy/httpdocs.htaccess package/httpdocs/.htaccess
+          cp deploy/api.htaccess package/httpdocs/api/v1/.htaccess
+          tar -czf site.tgz -C package .
+      - name: Upload site.tgz
         uses: actions/upload-artifact@v4
         with:
-          name: www
-          path: www.tgz
+          name: site
+          path: site.tgz
           if-no-files-found: error
 
   create-release:
@@ -117,10 +130,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Download www package
+      - name: Download site package
         uses: actions/download-artifact@v4
         with:
-          name: www
+          name: site
           path: release-assets
       - name: Version the release source
         id: versioned-source
@@ -143,7 +156,7 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare-version.outputs.tag }}
           RELEASE_COMMIT: ${{ steps.versioned-source.outputs.commit }}
         run: |
-          gh release create "$RELEASE_TAG" release-assets/www.tgz --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --generate-notes
+          gh release create "$RELEASE_TAG" release-assets/site.tgz --repo "$GITHUB_REPOSITORY" --target "$RELEASE_COMMIT" --generate-notes
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   deploy:
@@ -156,9 +169,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.create-release.outputs.tag }}
-        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern www.tgz --dir release-assets
-      - name: Extract docroot files
-        run: mkdir www && tar -xzf release-assets/www.tgz -C www
+        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern site.tgz --dir release-assets
+      - name: Extract deployment package
+        run: mkdir site && tar -xzf release-assets/site.tgz -C site
       - name: Install lftp
         run: |
           sudo apt-get update -qq
@@ -180,6 +193,6 @@ jobs:
             set ssl:check-hostname no;
             open --user \"$FTPS_DEPLOY_USERNAME\" --env-password \"ftp://$FTPS_DEPLOY_HOST:21\" &&
             cd /httpdocs &&
-            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/www/\" . &&
+            mirror --reverse --verbose --delete \"$GITHUB_WORKSPACE/site/httpdocs/\" . &&
             bye
           "

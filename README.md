@@ -35,7 +35,7 @@ The starter site supports login, creating private vocabulary lists, adding/listi
 
 VokabelBox has an independent PHP implementation of FSRS-4.5, using the published default parameters and 90% desired retention. See the [FSRS algorithm reference](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm) for the formulas and version details, and the [Open Spaced Repetition `py-fsrs` project](https://github.com/open-spaced-repetition/py-fsrs) for a reference implementation.
 
-The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in `backend/config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
+The local stack uses Flutter Web, PHP-FPM, Nginx, and MySQL. Backend connection and development-account settings are centralized in the project-root `config.php` and populated from the Compose environment. Only the web app is published to the host, on `127.0.0.1`; the API and database remain inside the Compose network. This development setup is not configured for public deployment (for example, it has no production TLS termination or login rate limiting).
 
 ## Tests
 
@@ -43,12 +43,12 @@ Run the UUID unit test with PHP 8.4 using `php backend/tests/uuid_test.php`. Run
 
 ## CI deployment package
 
-Pull requests run the tests. Pushes to `main` run the tests first; after they pass, CI increments the patch version from the latest release, applies that version and the workflow run number to the Flutter build, and publishes `www.tgz`. CI then creates a versioned source commit and GitHub Release with the new tag and archive, downloads the archive from that release, and deploys it over FTPS using the `prod` GitHub Actions environment. For example, after `v0.1.0`, the next successful `main` build is `v0.1.1`. The automatic version change lives on the release tag; CI does not push a version change to protected `main`. Tag pushes do not trigger tests or artifact builds. Set these environment secrets on `prod`:
+Pull requests run the tests. Pushes to `main` run the tests first; after they pass, CI increments the patch version from the latest release, applies that version and the workflow run number to the Flutter build, and publishes `site.tgz`. The artifact contains the Flutter site and the complete PHP backend under `httpdocs/api/v1/`; it excludes `config.php`. Create `/config.php` manually on the host before enabling the API. CI then creates a versioned source commit and GitHub Release with the new tag and archive, downloads the archive from that release, and deploys it over FTPS using the `prod` GitHub Actions environment. For example, after `v0.1.0`, the next successful `main` build is `v0.1.1`. The automatic version change lives on the release tag; CI does not push a version change to protected `main`. Tag pushes do not trigger tests or artifact builds. Set these environment secrets on `prod`:
 
 - `FTPS_DEPLOY_HOST`: FTPS server hostname.
 - `FTPS_DEPLOY_USERNAME` and `FTPS_DEPLOY_PASSWORD`: deployment credentials.
 
-The deployment uses lftp with explicit FTPS to `/httpdocs/`, the server's web document root. It verifies the certificate chain and encrypts the control, data, and file-list connections, while hostname matching is disabled for the hosting certificate. It mirrors the archive and deletes remote files that are not in it without clearing the directory before uploading. The archive contains the static web client only; configure the web server to route `/api/` requests to the VokabelBox PHP API. The client is built with `/api/v1` as its API base URL.
+The deployment uses lftp with explicit FTPS to `/httpdocs/`, the server's web document root. It verifies the certificate chain and encrypts the control, data, and file-list connections, while hostname matching is disabled for the hosting certificate. It mirrors the archive and deletes remote files that are not in it without clearing the directory before uploading. Create `/config.php` manually with database settings; the artifact and deployment do not include or overwrite it. Configure PHP with `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and optional `DB_PORT`, or set those values in the manually created file. The package includes an `.htaccess` rewrite for Apache-compatible hosts that routes `/api/` to the PHP API and serves the Flutter app for other routes. The client is built with `/api/v1` as its API base URL.
 
 ## Contributing
 

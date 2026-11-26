@@ -7,9 +7,10 @@ RUN apk add --no-cache oniguruma \
 
 WORKDIR /var/www/html
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-COPY composer.json composer.lock ./
+COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --classmap-authoritative
-COPY . /var/www/html
+COPY backend/ /var/www/html/
+COPY config.php /var/www/config.php
 RUN chmod +x /var/www/html/entrypoint.sh
 
 EXPOSE 9000
