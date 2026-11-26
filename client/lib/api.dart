@@ -58,7 +58,7 @@ class ApiClient {
   }
 
   Future<StudySession> getStudySession(String setId, String direction) async {
-    final uri = _uri('/sets/$setId/study').replace(queryParameters: {
+    final uri = _uri('/sets/$setId/study', queryParameters: {
       'method': 'fsrs',
       'direction': direction,
     });
@@ -77,7 +77,7 @@ class ApiClient {
   }
 
   Future<LearningStatistics> getLearningStatistics(String setId, String direction) async {
-    final uri = _uri('/sets/$setId/statistics').replace(queryParameters: {
+    final uri = _uri('/sets/$setId/statistics', queryParameters: {
       'method': 'fsrs',
       'direction': direction,
     });
@@ -94,7 +94,22 @@ class ApiClient {
     );
   }
 
-  Uri _uri(String path) => Uri.parse('$_baseUrl$path');
+  Uri _uri(String path, {Map<String, String>? queryParameters}) {
+    final base = Uri.parse(_baseUrl);
+    if (base.path.endsWith('.php')) {
+      return base.replace(queryParameters: {
+        ...base.queryParameters,
+        'route': path,
+        ...?queryParameters,
+      });
+    }
+    final uri = Uri.parse('$_baseUrl$path');
+    if (queryParameters == null) return uri;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      ...queryParameters,
+    });
+  }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) async {
     final response = await _client.post(
