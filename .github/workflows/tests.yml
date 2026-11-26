@@ -9,6 +9,31 @@ permissions:
   contents: read
 
 jobs:
+  semantic-pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate pull request title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+
+          title = os.environ["PR_TITLE"]
+          pattern = r"^[a-z][a-z0-9-]*(?:\([^\r\n()]+\))?!?: \S(?:.*\S)?$"
+          if not re.fullmatch(pattern, title):
+              print(
+                  "Pull request title must follow Conventional Commits, "
+                  "for example 'feat(vocabulary): add import' or 'fix!: handle invalid input'.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          print("Pull request title follows Conventional Commits.")
+          PY
+
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -72,7 +97,25 @@ jobs:
           MAJOR="${BASH_REMATCH[1]}"
           MINOR="${BASH_REMATCH[2]}"
           PATCH_NUMBER=$((10#${BASH_REMATCH[3]} + 1))
-          VERSION="$MAJOR.$MINOR.$PATCH_NUMBER"
+          COMMIT_TITLE="$(git log -1 --format=%s "$GITHUB_SHA")"
+          if [[ "$COMMIT_TITLE" =~ ^[a-z][a-z0-9-]*(\([^)]*\))?!: ]]; then
+            BUMP=major
+          elif [[ "$COMMIT_TITLE" =~ ^feat(\([^)]*\))?: ]]; then
+            BUMP=minor
+          else
+            BUMP=patch
+          fi
+          case "$BUMP" in
+            major)
+              VERSION="$((10#$MAJOR + 1)).0.0"
+              ;;
+            minor)
+              VERSION="$MAJOR.$((10#$MINOR + 1)).0"
+              ;;
+            patch)
+              VERSION="$MAJOR.$MINOR.$PATCH_NUMBER"
+              ;;
+          esac
           BUILD_NUMBER="$GITHUB_RUN_NUMBER"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "app_version=$VERSION+$BUILD_NUMBER" >> "$GITHUB_OUTPUT"

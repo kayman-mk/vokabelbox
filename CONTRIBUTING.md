@@ -17,7 +17,7 @@ Thanks for helping improve Vokabelhain. The repository is currently in the plann
 4. Open a pull request with a clear title and a concise description of the change, motivation, and verification.
 5. Link related issues and include screenshots for user-facing UI changes when useful.
 
-Pull requests are squash-merged. The PR title and description are used as the squash commit message on `main`, so write them as a clear, durable summary of the change. Use a Conventional Commit style title when practical, for example `docs: add repository guidance` or `feat: add vocabulary list management`.
+Pull requests are squash-merged. The PR title and description are used as the squash commit message on `main`, so write them as a clear, durable summary of the change. Titles must follow Conventional Commits, for example `docs: add repository guidance` or `feat(vocabulary): add list management`. A `feat` title increments the minor version, a title with `!` increments the major version, and all other types increment the patch version. For example, `feat!: replace the import format` is a major change.
 
 ## Scope and review
 
