@@ -31,7 +31,11 @@ String detectCsvDelimiter(String content) {
 }
 
 CsvDocument parseCsvDocument(String content, String delimiter) {
-  final source = content.startsWith('\uFEFF') ? content.substring(1) : content;
+  final withoutBom = content.startsWith('\uFEFF') ? content.substring(1) : content;
+  final source = withoutBom
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      .replaceAll('\n', '\r\n');
   final parsed = CsvToListConverter(
     fieldDelimiter: delimiter,
     shouldParseNumbers: false,
