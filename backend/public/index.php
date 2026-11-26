@@ -181,6 +181,9 @@ if ($method === 'GET' && $path === '/api/v1/auth/me') {
     respond(200, ['id' => $user['id'], 'username' => $user['username']]);
 }
 
+$user = authenticated_user();
+$userId = $user['id'];
+
 if ($method === 'POST' && $path === '/api/v1/auth/logout') {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -196,9 +199,6 @@ if ($method === 'POST' && $path === '/api/v1/auth/logout') {
     session_destroy();
     respond(200, ['status' => 'ok']);
 }
-
-$user = authenticated_user();
-$userId = $user['id'];
 
 if ($method === 'GET' && $path === '/api/v1/sets') {
     $query = database()->prepare(
