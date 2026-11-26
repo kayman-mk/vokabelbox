@@ -46,6 +46,15 @@ class ApiClient {
         await _post('/sets', {'name': name}),
       );
 
+  Future<void> renameSet(String setId, String name) async {
+    final response = await _client.put(
+      _uri('/sets/$setId'),
+      headers: const {'Content-Type': 'application/json; charset=utf-8'},
+      body: jsonEncode({'name': name}),
+    );
+    _decode(response);
+  }
+
   Future<List<Vocabulary>> getWords(String setId) async {
     final data = _decode(await _client.get(_uri('/sets/$setId/words')));
     return (data['words'] as List<dynamic>)

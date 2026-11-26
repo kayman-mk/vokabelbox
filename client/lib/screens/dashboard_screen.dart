@@ -47,6 +47,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _renameSet(VocabularySet set) async {
+    final controller = TextEditingController(text: set.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Lernbox umbenennen'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 120,
+          decoration: const InputDecoration(labelText: 'Name der Lernbox'),
+          onSubmitted: (_) => Navigator.pop(context, controller.text.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Speichern')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.trim().isEmpty || name.trim() == set.name) return;
+    try {
+      await widget.api.renameSet(set.id, name.trim());
+      _reload();
+    } catch (error) {
+      if (mounted) _showError(error);
+    }
+  }
+
   void _showError(Object error) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
 
   @override
@@ -97,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     final contentWidth = (constraints.maxWidth - 2 * horizontal).clamp(0.0, 1120.0).toDouble();
                     final columns = contentWidth > 980 ? 3 : contentWidth > 620 ? 2 : 1;
                     final cardWidth = (contentWidth - (columns - 1) * 16) / columns;
-                    return Wrap(spacing: 16, runSpacing: 16, children: sets.map((set) => SizedBox(width: cardWidth, child: SetCard(set: set, onTap: () async {
+                    return Wrap(spacing: 16, runSpacing: 16, children: sets.map((set) => SizedBox(width: cardWidth, child: SetCard(set: set, onRename: () => _renameSet(set), onTap: () async {
                       await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => SetScreen(api: widget.api, vocabularySet: set)));
                       _reload();
                     }))).toList());

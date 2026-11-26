@@ -228,6 +228,24 @@ if ($method === 'POST' && $path === '/api/v1/sets') {
     respond(201, ['id' => $id, 'name' => $name, 'wordCount' => 0]);
 }
 
+if ($method === 'PUT' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$#', $path, $matches) === 1) {
+    $setId = strtolower($matches[1]);
+    $name = trim((string)(request_body()['name'] ?? ''));
+    if ($name === '' || mb_strlen($name) > 120) {
+        respond(422, ['error' => 'List name must contain between 1 and 120 characters.']);
+    }
+    $update = database()->prepare('UPDATE vocabulary_sets SET name = :name WHERE id = :id AND owner_user_id = :owner');
+    $update->execute(['name' => $name, 'id' => $setId, 'owner' => $userId]);
+    if ($update->rowCount() === 0) {
+        $exists = database()->prepare('SELECT 1 FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
+        $exists->execute(['id' => $setId, 'owner' => $userId]);
+        if ($exists->fetchColumn() === false) {
+            respond(404, ['error' => 'List not found.']);
+        }
+    }
+    respond(200, ['id' => $setId, 'name' => $name]);
+}
+
 if ($method === 'POST' && preg_match('#^/api/v1/sets/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/imports$#', $path, $matches) === 1) {
     $setId = strtolower($matches[1]);
     $setQuery = database()->prepare('SELECT id FROM vocabulary_sets WHERE id = :id AND owner_user_id = :owner');
