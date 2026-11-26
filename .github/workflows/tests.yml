@@ -110,9 +110,11 @@ jobs:
           MINOR="${BASH_REMATCH[2]}"
           PATCH_NUMBER=$((10#${BASH_REMATCH[3]} + 1))
           COMMIT_TITLE="$(git log -1 --format=%s "$GITHUB_SHA")"
-          if [[ "$COMMIT_TITLE" =~ ^[a-z][a-z0-9-]*(\([^)]*\))?!: ]]; then
+          BREAKING_CHANGE_PATTERN='^[a-z][a-z0-9-]*(\([^)]*\))?!:'
+          FEATURE_PATTERN='^feat(\([^)]*\))?:'
+          if [[ "$COMMIT_TITLE" =~ $BREAKING_CHANGE_PATTERN ]]; then
             BUMP=major
-          elif [[ "$COMMIT_TITLE" =~ ^feat(\([^)]*\))?: ]]; then
+          elif [[ "$COMMIT_TITLE" =~ $FEATURE_PATTERN ]]; then
             BUMP=minor
           else
             BUMP=patch
