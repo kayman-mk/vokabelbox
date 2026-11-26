@@ -1,7 +1,11 @@
 <?php
 declare(strict_types=1);
 
-$config = require __DIR__ . '/config.php';
+$configPath = dirname(__DIR__) . '/config.php';
+if (!is_file($configPath)) {
+    $configPath = dirname(__DIR__, 2) . '/config.php';
+}
+$config = require $configPath;
 $database = $config['database'];
 
 return [

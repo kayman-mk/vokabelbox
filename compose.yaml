@@ -12,7 +12,8 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DB_HOST: db
       DB_NAME: ${MYSQL_DATABASE:-vokabelbox}
